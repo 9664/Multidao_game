@@ -1,0 +1,12 @@
+{
+  "name": "multidao-campanha-dos-reinos",
+  "version": "0.7.1",
+  "private": true,
+  "scripts": {
+    "check": "node --check levels.js && node --check navigation.js && node --check engine.js && node --check renderer.js && node --check audio.js && node --check campaign.js && node --check campaign-renderer.js && node --check play.js",
+    "test": "node --test tests/core.test.cjs tests/campaign.test.cjs",
+    "test:legacy": "node --test legacy/north-wall/tests/core.test.cjs",
+    "test:campaign": "python tests/matrix071.py",
+    "test:browser": "xvfb-run -a python tests/browser071.py"
+  }
+}

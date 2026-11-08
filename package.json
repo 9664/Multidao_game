@@ -1,12 +1,15 @@
 {
-  "name": "multidao-campanha-dos-reinos",
-  "version": "0.7.1",
+  "name": "multidao-cerco-infinito",
+  "version": "0.8.0",
   "private": true,
   "scripts": {
-    "check": "node --check levels.js && node --check navigation.js && node --check engine.js && node --check renderer.js && node --check audio.js && node --check campaign.js && node --check campaign-renderer.js && node --check play.js",
-    "test": "node --test tests/core.test.cjs tests/campaign.test.cjs",
+    "check": "node --check endless.js && node --check fast-road.js && node --check polish.js && node --check progress.js && node --check play.js",
+    "test": "node --test tests/core.test.cjs tests/campaign.test.cjs tests/endless.test.cjs",
     "test:legacy": "node --test legacy/north-wall/tests/core.test.cjs",
     "test:campaign": "python tests/matrix071.py",
-    "test:browser": "xvfb-run -a python tests/browser071.py"
+    "test:browser": "xvfb-run -a python tests/browser080.py",
+    "test:endless": "python tests/matrix080.py",
+    "bench:logic": "node tests/bench080.cjs",
+    "bench:render": "xvfb-run -a python tests/render-bench080.py"
   }
 }
