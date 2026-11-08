@@ -1,55 +1,39 @@
-# Multidão 0.7.0 — Cerco do Cânion
+# Multidão 0.7.1 — Campanha dos Reinos
 
-**Versão funcional para revisão na branch `feat/v0.7.0-canyon`. Não publicada no GitHub Pages.** Base preservada: v0.6.0, commit `9f0bc11179645a36ec6288bbb8a8f6dd3e57ab95`.
+Evolução da 0.7.0, autorizada para publicação no GitHub Pages. Seis cenários selecionáveis, progressão em sequência, medalhas e melhor tempo salvos localmente, rajada temporária e renderização adaptativa.
 
-## Jogar
+## As seis fases
 
-Inicie o cerco e arraste a bateria ou use a barra inferior. No centro, cada tiro lança um soldado que atravessa o portão ×50. Mire na torre esquerda para conquistar um canhão adicional; na direita, para receber 99 soldados. As torres também podem ser selecionadas pelo botão sobre a estrutura.
+| Fase | Cenário | Invasores | Portão | Chefe / vida |
+|---|---|---:|---:|---|
+| 1 | Ponte da Aurora, sobre o mar | 1.200 | ×30 | Sentinela das Marés / 280 |
+| 2 | Cânion do Guardião, estrada em S | 2.200 | ×50 | Guardião do Desfiladeiro / 480 |
+| 3 | Muralha de Gelo, passagem reta na neve | 2.800 | ×99 | Colosso do Inverno / 700 |
+| 4 | Desfiladeiro Dourado, curvas invertidas | 2.300 | ×50 | Marechal das Dunas / 550 |
+| 5 | Forja Vulcânica, ponte sobre lava | 3.200 | ×75 | Titã da Forja / 850 |
+| 6 | Fortaleza Boreal, cerco final | 4.000 | ×99 | Rei da Tempestade / 1.100 |
 
-A partida começa com 4.000 invasores, um canhão, 90 cargas individuais e cinco pontos de defesa. Duas torres de melhoria permitem chegar a três canhões. Cada arma efetivamente dispara e consome uma carga; salvas são escalonadas. A torre de reforços entrega 99 soldados depois do multiplicador, sem multiplicação adicional. Recompensas em espera aparecem separadamente dos aliados presentes.
+Escolha uma fase pelo botão FASES ou avance após vencer. As fases são acessíveis sem bloqueio para testes. Os chefes têm variações de cor, vida e parâmetros de ataque, mas compartilham o mesmo modelo-base de cavaleiro; não são seis personagens de arte inteiramente diferentes.
 
-O Guardião do Desfiladeiro entra aos 30 segundos ou após 45% das baixas da horda. Sua vida é real: 600 pontos iniciais. O golpe é anunciado com área no chão e contagem regressiva. Para vencer, é preciso eliminar a horda e o Guardião sem perder a defesa. Limite: 90 segundos.
+Mire no centro para lançar soldados ou nas torres para obter mais canhões e reforços. A bateria chega a três armas. A rajada dura três segundos, tem recarga de 16 segundos e não concede munição: cada tiro consome uma carga. O som começa após o toque de início. Abrir ajustes ou fases pausa a partida. Medalhas e preferências ficam no navegador, sem conta ou envio de dados; limpar o armazenamento apaga esse progresso.
 
-ÁUDIO permite ajustar música, efeitos, volume e vibração visual. HD/LEVE só altera gráficos. Pausar ou ocultar a aba interrompe simulação e áudio. A fase anterior continua disponível em `legacy/north-wall/index.html`.
+## Implementação
 
-## Executar localmente
+O núcleo revisado 0.7.0 continua em `engine.js`, `navigation.js`, `levels.js` e `renderer.js`; seus números internos de versão foram mantidos para regressão. `campaign.js` acrescenta seis configurações e a habilidade de rajada; `campaign-renderer.js` implementa os cenários e modelos de distância; `play.js` e `campaign.css` são a interface da versão pública 0.7.1. `index.html` carrega somente os módulos necessários, com URLs versionadas.
 
-Não há dependências de produção, build, CDN, backend ou conta de usuário.
+A redução de detalhe e o descarte visual de personagens fora do enquadramento não removem combatentes da simulação. O modo AUTO reduz a resolução ao detectar intervalos de desenho elevados; também há HD e LEVE. Não há garantia de 30 FPS em qualquer telefone. Consulte `TEST_REPORT.md` para escopo e limitações.
+
+## Executar e testar
 
 ```sh
 python -m http.server 8000
-# Abra http://localhost:8000 no navegador.
 npm run check
 npm test
 npm run test:legacy
-python tests/matrix.py
+python tests/matrix071.py
+xvfb-run -a python tests/browser071.py
 ```
 
-Testes gráficos exigem Python com Playwright, Chromium e Xvfb. Os scripts usam `/usr/bin/chromium`; ajuste esse caminho ao seu ambiente. Para gravar vídeo, instale também o componente FFmpeg do Playwright (`playwright install ffmpeg`) ou configure seu equivalente local.
+Os testes gráficos exigem Playwright para Python, Chromium em `/usr/bin/chromium` e Xvfb. Carregam os arquivos reais em memória; não são testes em telefone físico. O projeto não exige build, backend, dependências de execução ou CDN.
 
-```sh
-xvfb-run -a python tests/browser_test.py
-xvfb-run -a python tests/audio_test.py
-xvfb-run -a python tests/record_session.py
-```
-
-O carregador de testes usa os arquivos reais em memória, pois este ambiente bloqueou navegação HTTP no Chromium. Isso não equivale a testar o site publicado nem um celular físico. Leia `TEST_REPORT.md`.
-
-## Estrutura
-
-- `levels.js`: parâmetros explícitos e fixos de balanceamento.
-- `navigation.js`: estrada em S compartilhada por piso, parapeitos, movimento, alcance e passagem pelo portão.
-- `engine.js`: simulação a 30 passos por segundo, filas de geração, tiros, torres, combate, chefe e invariantes.
-- `renderer.js`: WebGL instanciado; cânion, torres, bateria, tropas, chefe e efeitos procedurais originais.
-- `audio.js`: áudio procedural orientado a eventos da simulação, sem arquivos externos licenciados.
-- `app.js` / `index.html`: toque, interface, acessibilidade básica, preferências locais e ciclo de vida.
-- `legacy/north-wall/`: snapshot completo da versão 0.6.0, sem modificar suas regras.
-- `tests/`: lógica, estratégias, interface, áudio e gravação contínua.
-
-## Estado de revisão
-
-Os resultados reais estão em `TEST_REPORT.md`; os logs e capturas estão no pacote de evidências. Funcionalidade foi verificada, mas a meta de desempenho em aparelho ainda não foi aprovada. A captura com SwiftShader ficou abaixo de 30 quadros/s. Android físico, iPhone e Safari não foram testados. Não tratar aprovação dos testes lógicos como aprovação visual definitiva ou garantia de fluidez.
-
-O vídeo é uma captura contínua, sem acelerar a simulação, mas sem faixa sonora capturada pelo Playwright. O áudio do jogo foi testado separadamente. A arte permanece estilizada e simplificada; não é uma cópia idêntica do anúncio. A câmera mantém o enquadramento com tremor opcional limitado; não foi adicionado zoom cinematográfico.
-
-Não fazer merge em `main` nem alterar GitHub Pages sem autorização específica. Não há serviços pagos, analytics, compras, login ou coleta de dados.
+GitHub Pages: branch `main`, raiz. O cenário 0.6.0 permanece em `legacy/north-wall/`; a revisão 0.7.0 também está preservada no histórico. A arte continua procedural e simplificada em relação ao anúncio de referência.
