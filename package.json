@@ -1,1 +1,10 @@
-{"name":"multidao-muralha-do-norte","version":"0.6.0","private":true,"scripts":{"test":"node --test tests/core.test.cjs","check":"node --check engine.js && node --check renderer.js && node --check audio.js && node --check app.js"}}
+{
+  "name": "multidao-cerco-do-canion",
+  "version": "0.7.0",
+  "private": true,
+  "scripts": {
+    "check": "node --check levels.js && node --check navigation.js && node --check engine.js && node --check renderer.js && node --check audio.js && node --check app.js",
+    "test": "node --test tests/core.test.cjs",
+    "test:legacy": "node --test legacy/north-wall/tests/core.test.cjs"
+  }
+}

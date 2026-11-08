@@ -1,4 +1,4 @@
-/* Grande Cerco 0.6.0 — instanced WebGL, near/far troop models and procedural FX. All art is procedural and original. */
+/* Grande Cerco 0.7.0 — instanced WebGL, near/far troop models and procedural FX. All art is procedural and original. */
 (function(root){
 'use strict';
 const VERT=`
@@ -61,7 +61,7 @@ class Renderer {
   for(const n of ['aPosition','aNormal','aColor','aPart','aOffset','aParams','aTint'])this.attr[n]=gl.getAttribLocation(p,n);
   this.vpLoc=gl.getUniformLocation(p,'uVP');this.timeLoc=gl.getUniformLocation(p,'uTime');this.instance=gl.createBuffer();
   gl.enable(gl.DEPTH_TEST);gl.clearColor(.74,.81,.85,1);
-  this.unit=this.mesh(this.unitGeometry());this.farUnit=this.mesh(this.farGeometry());this.cannon=this.mesh(this.cannonGeometry());
+  this.unit=this.mesh(this.unitGeometry());this.farUnit=this.mesh(this.farGeometry());this.cannon=this.mesh(this.cannonGeometry());this.bossMesh=this.mesh(this.bossGeometry());this.towerMesh=this.mesh(this.towerGeometry());const ball=new Geometry();ball.cylinder(0,0,0,.15,.25,8,[.23,.26,.29]);this.ball=this.mesh(ball);const mark=new Geometry();mark.cylinder(0,.025,0,1,.035,48,[1,1,1],'y',1,9,1);this.mark=this.mesh(mark);
   const shadow=new Geometry();shadow.cylinder(0,.012,0,.21,.008,6,[.35,.34,.37]);this.shadow=this.mesh(shadow);
   const spark=new Geometry();spark.cylinder(0,0,0,.10,.16,5,[1,1,1],'y',.04,9,1);this.spark=this.mesh(spark);
   this.resize();
@@ -83,38 +83,40 @@ class Renderer {
   const g=new Geometry();g.box(0,.38,0,1.15,.35,1.25,[.11,.31,.60]);
   for(const x of [-.68,.68]){g.cylinder(x,.35,0,.35,.20,12,C.dark,'x');g.cylinder(x*1.02,.35,0,.12,.22,8,C.gold,'x');}
   g.cylinder(0,.75,-.40,.27,1.35,12,C.steel,'z',.23);g.cylinder(0,.75,-1.06,.27,.12,12,C.gold,'z');g.cylinder(0,.75,-1.13,.19,.025,12,[.04,.06,.07],'z');
-  g.box(0,.46,.46,.44,.22,.22,C.gold);for(let i=0;i<g.v.length;i+=11){g.v[i]*=1.30;g.v[i+1]*=1.30;g.v[i+2]*=1.30;}return g;
+  g.box(0,.46,.46,.44,.22,.22,C.gold);for(let i=0;i<g.v.length;i+=11){g.v[i]*=.85;g.v[i+1]*=.85;g.v[i+2]*=.85;}return g;
  }
+ bossGeometry(){
+  const g=new Geometry(),armor=[.34,.40,.47],red=[.62,.075,.065],metal=[.76,.81,.84],gold=[.92,.62,.24];
+  g.box(0,1.45,0,1.25,1.28,.75,red);g.box(0,1.93,0,1.72,.30,.88,armor);
+  g.box(-.42,.48,0,.48,.96,.60,armor,-1);g.box(.42,.48,0,.48,.96,.60,armor,1);
+  g.cylinder(0,2.48,0,.49,.72,10,metal);g.box(0,2.48,-.46,.71,.11,.05,[.04,.08,.10]);
+  g.box(0,2.33,-.45,.12,.55,.07,gold);g.cylinder(0,3.00,0,.20,.40,6,red,'y',0);
+  for(const side of [-1,1]){g.cylinder(side*.92,1.94,0,.44,.43,8,armor);g.cylinder(side*.92,2.33,0,.14,.42,5,metal,'y',0);g.box(side*1.07,1.47,0,.4,.77,.5,red,2);}
+  g.box(1.23,1.75,-.45,.17,2.02,.12,metal,2);g.box(1.23,.95,-.45,.61,.15,.27,gold,2);g.box(-1.1,1.35,-.3,.55,1.03,.16,armor);
+  return g;
+ }
+ towerGeometry(){const g=new Geometry();g.box(0,.78,0,1.8,1.56,1.8,[.47,.48,.50]);for(let y=.18;y<1.5;y+=.28)for(let x=-.6;x<=.61;x+=.6)g.box(x,y,.909,.575,.245,.025,[.58,.58,.56]);g.box(0,1.65,0,1.96,.19,1.96,[.68,.63,.53]);g.box(0,2.15,0,1.65,.90,1.50,[.08,.63,.90]);g.box(0,2.67,0,1.74,.12,1.58,[.14,.82,1]);return g;}
  rebuild(game){
-  if(this.world)this.gl.deleteBuffer(this.world.buffer);
-  const g=new Geometry(),half=Multidao.halfWidth;
-  g.box(0,-.30,-18,100,.40,100,C.grass);
-  const outline=[[-6.65,14],[6.65,14],[6.65,-15],[20.55,-21],[20.55,-60],[-20.55,-60],[-20.55,-21],[-6.65,-15]];
-  for(let i=0;i<outline.length;i++)g.tri([0,-.055,-16],[outline[i][0],-.055,outline[i][1]],[outline[(i+1)%outline.length][0],-.055,outline[(i+1)%outline.length][1]],C.road);
-  // Shallow, low-contrast paving, not a visible checkerboard.
-  for(let z=-60;z<14;z+=1.7)for(let x=-half(z)+.65;x<half(z)-.5;x+=2.25){const v=((Math.floor((x+24)*7)+Math.floor(-z)*11)%5)*.003;g.box(x,-.045,z,2.23,.01,1.68,[.58+v,.55+v,.57+v]);}
-  // The parapet follows the widening battle entrance. No back castle in frame.
-  for(let z=-60;z<14;z+=.72)for(const side of [-1,1]){
-    const x=side*(half(z)+.28),angle=z>-21&&z<-15?-side*Math.atan(13.9/6):0;
-    g.rotBox(x,.38,z,.48,.76,z>-21&&z<-15?1.98:.76,C.stone,angle);
-    if(Math.floor((z+43)/.72)%2===0)g.rotBox(x,.83,z,.50,.18,.43,C.edge,angle);
-    g.rotBox(x+side*.30,.013,z,.18,.02,.75,[.42,.41,.44],angle);
+  if(this.world)this.gl.deleteBuffer(this.world.buffer);const g=new Geometry(),road=game.road;
+  g.box(0,-12.0,-25,140,.1,150,[.055,.13,.23]);
+  for(let s=0;s<road.length-.5;s+=.55){
+   const p=road.sample(s),q=road.sample(Math.min(s+.56,road.length));
+   const left=road.point(s,-p.width),right=road.point(s,p.width),left2=road.point(Math.min(s+.56,road.length),-q.width),right2=road.point(Math.min(s+.56,road.length),q.width);
+   const tone=.67,col=[tone+.07,tone+.015,tone-.09];
+   g.tri([left.x,0,left.z],[right.x,0,right.z],[right2.x,0,right2.z],col);g.tri([left.x,0,left.z],[right2.x,0,right2.z],[left2.x,0,left2.z],col);
+   for(const [a,b,side] of [[left,left2,-1],[right,right2,1]]){
+    const rock=[.19+Math.sin(s*2)*.025,.25+Math.sin(s*2)*.025,.34+Math.sin(s*2)*.025];
+    g.tri([a.x,-11,a.z],[a.x,-.02,a.z],[b.x,-.02,b.z],rock);g.tri([a.x,-11,a.z],[b.x,-.02,b.z],[b.x,-11,b.z],rock);
+    const angle=Math.atan2(-p.tx,-p.tz);g.rotBox(a.x,.26,a.z,.20,.52,.59,[.58,.61,.64],angle);
+    if(Math.floor(s/.55)%3===0)g.rotBox(a.x,.61,a.z,.24,.20,.28,[.73,.74,.72],angle);
+   }
   }
-  for(const w of game.walls){
-    g.box(w.x+.16,-.005,w.z+.23,w.w+.34,.018,w.d+.46,[.47,.44,.47]);g.box(w.x,.36,w.z,w.w,.72,w.d,C.stone);g.box(w.x,.76,w.z,w.w+.025,.09,w.d+.025,C.edge);
-    const n=Math.max(1,Math.floor(w.w/.58));
-    for(let j=0;j<n;j++)for(let row=0;row<3;row++)g.box(w.x-w.w/2+(j+.5)*w.w/n,.14+row*.23,w.z+w.d/2+.006,w.w/n-.015,.215,.016,[.43+row*.006,.44+row*.006,.47+row*.006]);
-  }
-  for(const a of game.gates){
-    for(const x of [a.x-a.w/2,a.x+a.w/2]){g.box(x,.65,a.z,.14,1.30,.18,C.gold);g.box(x,.10,a.z,.28,.20,.28,C.stone);}
-    g.box(a.x,1.20,a.z,a.w,.12,.19,C.gold);g.box(a.x,.005,a.z,a.w,.025,.10,[.29,.53,.65]);
-  }
-  // Sparse winter scenery stays outside the playable road.
-  for(let i=0;i<14;i++){
-    const z=-18+i*2.1,x=(i%2?1:-1)*(half(z)+1.2+(i%3)*.7);
-    g.cylinder(x,.34,z,.09,.68,5,[.45,.40,.36]);
-    g.cylinder(x,.8,z,.36,1.1,6,[.77,.82,.87],'y',0);g.cylinder(x,1.04,z,.28,.82,6,[.99,.99,1],'y',0);
-  }
+  // Fractured rock buttresses follow the exact road edge, descending into the mist.
+  for(let s=0;s<road.length;s+=2.0){const p=road.sample(s);for(const side of [-1,1]){const v=road.point(s,side*(p.width+.25));g.rotBox(v.x,-5,v.z,.7,9.8,1.3,[.17+(s%3)*.018,.24+(s%3)*.018,.33+(s%3)*.018],Math.atan2(-p.tx,-p.tz));}}
+  const gate=game.gates[0],p=road.sample(gate.s),angle=Math.atan2(-p.tx,-p.tz);
+  for(const side of [-1,1]){const v=road.point(gate.s,side*2.28);g.box(v.x,.76,v.z,.20,1.52,.24,C.gold);}
+  g.rotBox(gate.x,1.48,gate.z,4.7,.14,.24,C.gold,angle);
+  g.box(0,.012,4.3,12,.04,.12,[.24,.60,.89]);
   this.world=this.mesh(g);
  }
  resize(){
@@ -125,15 +127,14 @@ class Renderer {
   const aspect=this.width/this.height,proj=perspective(aspect);
   // Portrait is deliberately close: the army continues beyond the upper edge.
   // On landscape, fit the playable depth instead of cropping the cannon.
-  if(aspect<.85){
-    const scale=Math.max(.92,.52/aspect);
-    this.vp=multiply(proj,view([0,40.5*scale,20.6*scale],[0,0,-7.56]));
-  }else this.vp=multiply(proj,view([0,35,30],[0,0,-13]));
+  if(aspect<.85){const scale=Math.max(1,.5/aspect);this.vp=multiply(proj,view([0,42*scale,22*scale],[0,0,-12.2]));}
+  else this.vp=multiply(proj,view([0,44,35],[0,0,-12]));
   this.baseVP=new Float32Array(this.vp);
   this.gl.viewport(0,0,w,h);this.gl.uniformMatrix4fv(this.vpLoc,false,this.vp);
  }
  project(x,y,z){const m=this.vp,ww=m[3]*x+m[7]*y+m[11]*z+m[15];return {x:((m[0]*x+m[4]*y+m[8]*z+m[12])/ww+1)*this.width/2,y:(1-(m[1]*x+m[5]*y+m[9]*z+m[13])/ww)*this.height/2};}
- pointerX(clientX){const r=this.canvas.getBoundingClientRect(),center=this.project(0,0,3.65),unit=this.project(1,0,3.65);return (clientX-r.left-center.x)/(unit.x-center.x);}
+ pointerX(clientX){const r=this.canvas.getBoundingClientRect(),center=this.project(0,0,2.3),unit=this.project(1,0,2.3);return (clientX-r.left-center.x)/(unit.x-center.x);}
+
  draw(mesh,instances){
   if(!mesh||!instances.length)return;this.drawCalls++;const gl=this.gl,a=this.attr,ext=this.ext;
   gl.bindBuffer(gl.ARRAY_BUFFER,mesh.buffer);
@@ -163,7 +164,14 @@ class Renderer {
     (distant?far:near).push([u.x,y,u.z,u.angle,u.walking,u.id*.73,Math.max(u.hit*4,u.swing*3),...tint]);
   }
   this.draw(this.shadow,shadows);this.draw(this.farUnit,far);this.draw(this.unit,near);
-  const recoil=game.effects.find(e=>e.type==='muzzle');this.draw(this.cannon,[[game.gunX,0,3.65+(recoil?recoil.t*.7:0),0,0,0,0,1,1,1]]);
+  for(const t of game.towers)if(t.state==='active')this.draw(this.towerMesh,[[t.x,0,t.z,0,0,0,t.flash*3,1,1,1]]);
+  for(let i=0;i<game.cannons;i++){const recoil=game.effects.find(e=>e.type==='muzzle'&&e.cannon===i),x=game.gunX+(i-(game.cannons-1)/2)*1.32;this.draw(this.cannon,[[x,0,2.3+(recoil?recoil.t*.55:0),0,0,0,0,1,1,1]]);}
+  const b=game.boss;if(!['dormant','defeated'].includes(b.state))this.draw(this.bossMesh,[[b.x,0,b.z,b.angle,b.walking,0,Math.max(b.hit*4,b.state==='strike'?.7:0),1,1,1]]);
+  this.draw(this.ball,game.shells.map(b=>[b.x,.8,b.z,0,0,0,0,1,1,1]));
+  if(b.state==='windup'||b.state==='strike'){
+    const p=game.road.point(b.s-1.2,b.l);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);
+    this.draw(this.mark,[[p.x,.03,p.z,0,game.cfg.bossAttackRadius,0,.42,.95,.2,.035]]);gl.depthMask(true);gl.disable(gl.BLEND);
+  }
   const particles=[];
   for(const e of game.effects){const t=1-e.t/e.max,n=e.type==='muzzle'?7:(this.quality>1?3:1);for(let i=0;i<n;i++){const a=i*Math.PI*2/n;
     const smoke=e.type==='muzzle'&&i<4;

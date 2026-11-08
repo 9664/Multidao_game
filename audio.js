@@ -1,4 +1,4 @@
-/* Grande Cerco 0.5.0. Original procedural score and effects; no downloaded audio. */
+/* Grande Cerco 0.7.0. Original procedural score and effects; no downloaded audio. */
 (function(root){
 'use strict';
 class SiegeAudio {
@@ -49,37 +49,36 @@ class SiegeAudio {
  drum(time,accent=false){this.counts.drum++;this.tone(accent?94:135,time,.26,accent?.45:.23,'sine','music',accent?42:70);this.hiss(time,.10,.10,700,0,'music');}
  horn(time,final=false){this.counts.horn++;const notes=final?[146.83,174.61,220]:[146.83,220];notes.forEach((f,i)=>this.tone(f,time+i*.07,.85,.11,'sawtooth','music',f,0,850));}
  result(time,win){this.counts.result++;const notes=win?[293.66,369.99,440,587.33]:[220,174.61,146.83];notes.forEach((f,i)=>{this.tone(f,time+i*.23,.65,.16,'sawtooth','music',f,0,1100);this.tone(f/2,time+i*.23,.7,.07,'triangle','music');});}
- stop(){for(const node of this.active)try{node.stop();}catch{}this.active.clear();this.nextBeat=0;this.last={};this.phase='';}
+ stop(){for(const node of [...this.active]){try{node.stop();}catch{}if(node.onended)node.onended();}this.active.clear();this.nextBeat=0;this.last={};this.phase='';}
  async suspend(){this.stop();if(this.ctx&&this.ctx.state==='running')try{await this.ctx.suspend();}catch{}}
- reset(){this.stop();if(this.ctx)this.nextBeat=this.ctx.currentTime+.07;this.nextImpact=this.nextGate=this.nextStep=0;this.beat=0;}
+ reset(){this.seenEvent=0;this.stop();if(this.ctx)this.nextBeat=this.ctx.currentTime+.07;this.nextImpact=this.nextGate=this.nextStep=0;this.beat=0;}
  update(game){
-  const c=this.ctx;if(!c||c.state!=='running')return;const now=c.currentTime,m=game.metrics;
-  if(game.state==='paused'||game.state==='ready')return;
-  if(game.state!=='playing'){
-   if(this.last.state!==game.state){this.stop();if(this.musicEnabled)this.result(now,game.state==='won');this.last.state=game.state;}
-   return;
+  const c=this.ctx;if(!c||c.state!=='running'||game.state==='paused'||game.state==='ready')return;
+  const now=c.currentTime;this.seenEvent=this.seenEvent||0;
+  for(const e of game.events){if(e.id<=this.seenEvent)continue;this.seenEvent=e.id;
+    if(this.enabled){
+     if(e.type==='shot')this.cannon(now,(e.x||0)/14);
+     if(e.type==='gate'&&now>=this.nextGate){this.gate(now,e.m,0);this.nextGate=now+.22;}
+     if((e.type==='combat'||e.type==='towerHit')&&now>=this.nextImpact){this.impact(now,.65);this.nextImpact=now+.12;}
+     if(e.type==='upgrade'||e.type==='reinforce'){this.gate(now,50);this.tone(1320,now+.18,.27,.10);}
+     if(e.type==='bossWindup'){this.tone(220,now,.7,.19,'sawtooth','fx',330,0,700);this.tone(440,now+.4,.24,.12);}
+     if(e.type==='bossStrike'){this.cannon(now);this.hiss(now,.42,.25,500);}
+     if(e.type==='breach')this.tone(440,now,.3,.1,'triangle','fx',200);
+    }
+    if(this.musicEnabled){if(e.type==='bossEntry')this.horn(now,true);if(e.type==='result')this.result(now,e.win);}
   }
-  if(this.enabled){
-   if(m.shots>(this.last.shots||0))this.cannon(now,game.gunX/14);
-   if(m.gatePasses>(this.last.gates||0)&&now>=this.nextGate){const gate=game.gates.find(g=>g.flash>.15);this.gate(now,gate?.m||3,(gate?.x||0)/14);this.nextGate=now+.22;}
-   if(m.hits>(this.last.hits||0)&&now>=this.nextImpact){this.impact(now,.6+game.pressure*.4);this.nextImpact=now+.11;}
-   if(game.blue.length>8&&now>=this.nextStep){this.hiss(now,.065,.025+Math.min(1,game.blue.length/300)*.04,380);this.nextStep=now+.29;}
-   if(m.breaches>(this.last.breaches||0))this.tone(440,now,.30,.12,'triangle','fx',200);
-  }
+  if(game.state!=='playing')return;
   if(this.musicEnabled){
-   if(this.phase!==game.phase){this.horn(now,game.phase==='surge');this.phase=game.phase;}
-   const bpm=game.phase==='assemble'?86:game.phase==='clash'?110:126;
-   if(this.nextBeat<now-.15)this.nextBeat=now+.02;
-   let scheduled=0;
-   while(this.nextBeat<now+.12&&scheduled++<3){const t=this.nextBeat,i=this.beat++;
+   const bpm=game.phase==='assemble'?86:game.phase==='clash'?108:124;
+   if(this.nextBeat<now-.15)this.nextBeat=now+.02;let n=0;
+   while(this.nextBeat<now+.12&&n++<3){const t=this.nextBeat,i=this.beat++;
     if(i%2===0)this.drum(t,i%8===0);
-    if(i%2===1&&game.phase!=='assemble')this.hiss(t,.075,.065,1800,0,'music');
-    if(i%8===0)this.tone(i%16?110:73.416,t,1.5,.10,'triangle','music');
-    if(i%4===0){const melody=[293.66,220,261.63,220,174.61,220,196,220];this.tone(melody[Math.floor(i/4)%8],t,.35,.055,'triangle','music');}
+    if(i%2&&game.phase!=='assemble')this.hiss(t,.075,.045,1800,0,'music');
+    if(i%8===0)this.tone(i%16?110:73.416,t,1.4,.08,'triangle','music');
+    if(i%4===0)this.tone([293.66,220,261.63,220,174.61,220,196,220][Math.floor(i/4)%8],t,.35,.045,'triangle','music');
     this.nextBeat+=30/bpm;
    }
   }else this.nextBeat=now+.05;
-  this.last={shots:m.shots,hits:m.hits,gates:m.gatePasses,breaches:m.breaches,state:game.state};
  }
  snapshot(){let peak=0;if(this.meter){this.meter.getFloatTimeDomainData(this.meterData);for(const v of this.meterData)peak=Math.max(peak,Math.abs(v));}return {state:this.ctx?.state||'locked',effects:this.enabled,music:this.musicEnabled,volume:this.volume,available:this.available,active:this.active.size,maxObserved:this.maxObserved,events:this.events,peak,counts:{...this.counts}};}
 }

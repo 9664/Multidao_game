@@ -1,2 +1,2 @@
-# Compatibility loader. The current browser suite uses preview.load.
-from preview import load
+# Compatibility loader for the current scenario. Legacy tests retain their own loader.
+from preview070 import load
