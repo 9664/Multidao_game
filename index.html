@@ -5,32 +5,36 @@ const material=c=>new T.MeshStandardMaterial({color:c});const stone=material(0x7
 function box(w,h,d,m,x,y,z){let a=new T.Mesh(new T.BoxGeometry(w,h,d),m);a.position.set(x,y,z);scene.add(a);return a}box(60,.1,200,grass,0,-.25,-55);box(10,.05,180,road,0,-.12,-50);for(let x of [-5.3,5.3]){box(.65,1.4,180,stone,x,.65,-50);for(let z=-130;z<35;z+=2.4)box(.7,.45,1,stone,x,1.55,z)}
 const cannon=new T.Group();scene.add(cannon);function piece(geo,m,x,y,z,parent=cannon){const o=new T.Mesh(geo,m);o.position.set(x,y,z);parent.add(o);return o}piece(new T.BoxGeometry(1.6,.6,2),wood,0,.55,0);for(let x of [-.9,.9]){const o=piece(new T.CylinderGeometry(.5,.5,.25,12),iron,x,.55,.1);o.rotation.z=Math.PI/2}const barrel=piece(new T.CylinderGeometry(.3,.4,2,12),iron,0,1,-.5);barrel.rotation.x=Math.PI/2;
 function label(n){const c=document.createElement('canvas');c.width=256;c.height=128;let a=c.getContext('2d');a.fillStyle='#177be2';a.fillRect(0,0,256,128);a.strokeStyle='#ffe06c';a.lineWidth=10;a.strokeRect(5,5,246,118);a.font='bold 82px sans-serif';a.textAlign='center';a.textBaseline='middle';a.fillStyle='white';a.fillText('×'+n,128,65);return new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide})}
-let level=1,playing=false,dist=0,gunX=0,spawn=0,army=[],foes=[],gates=[],walls=[],battle=false,last=0,shots=[],hits=0;const shotGeo=new T.SphereGeometry(.19,8,6);
-function soldier(enemy,x,z){const m=enemy?red:blue;const g=new T.Group();piece(new T.CylinderGeometry(.17,.2,.65,6),m,0,.5,0,g);piece(new T.SphereGeometry(.2,7,6),gold,0,.96,0,g);piece(new T.ConeGeometry(.25,.32,6),m,0,1.2,0,g);g.position.set(x,0,z);scene.add(g);return {g,x,z}}
+let level=1,playing=false,dist=0,gunX=0,spawn=0,army=[],foes=[],gates=[],walls=[],battle=false,last=0,shots=[],hits=0,elapsed=0,enemySpawned=false;const shotGeo=new T.SphereGeometry(.19,8,6);
+function soldier(enemy,x,z){const m=enemy?red:blue;const g=new T.Group();piece(new T.CylinderGeometry(.17,.2,.65,6),m,0,.5,0,g);piece(new T.SphereGeometry(.2,7,6),gold,0,.96,0,g);piece(new T.ConeGeometry(.25,.32,6),m,0,1.2,0,g);g.position.set(x,0,z);scene.add(g);return {g,x,z,health:1}}
 function kill(a){scene.remove(a.g)}function gate(z,x,n){let p=box(3,.95,.2,label(n),x,2.4,z);let l=box(.3,3,.4,gold,x-1.6,1.5,z),rr=box(.3,3,.4,gold,x+1.6,1.5,z);gates.push({z,x,n,parts:[p,l,rr],done:false})}function wall(z,x,w){walls.push({z,x,w,mesh:box(w,1.3,.8,stone,x,.65,z),done:false})}
-function hud(){document.querySelector('#army').textContent='EXÉRCITO '+army.length;document.querySelector('#foes').textContent='INIMIGOS '+(battle?foes.length:40+level*15)}
+function hud(){document.querySelector('#army').textContent='AZUIS '+army.length;document.querySelector('#foes').textContent='INIMIGOS '+(battle?foes.length:40+level*15)}
 function end(win){playing=false;document.querySelector('#panel').style.display='grid';document.querySelector('#title').textContent=win?'🏆 Vitória!':'🛡️ Derrota!';document.querySelector('#msg').textContent=win?'Você venceu o cerco!':'Tente atravessar mais portões e desviar dos muros.';document.querySelector('#start').textContent=win?'PRÓXIMA FASE':'TENTAR NOVAMENTE';if(win)level++}
-function fire(){const b=new T.Mesh(shotGeo,gold);b.position.set(gunX,1,-2);scene.add(b);shots.push({g:b,x:gunX,z:-2})}function start(){for(const a of [...army,...foes])kill(a);for(const b of shots)scene.remove(b.g);shots=[];hits=0;for(const g of gates)g.parts.forEach(p=>scene.remove(p));for(const w of walls)scene.remove(w.mesh);army=[];foes=[];gates=[];walls=[];dist=0;gunX=0;spawn=0;battle=false;playing=true;gate(-14,-2.2,20);gate(-14,2.2,4);gate(-34,-2.2,5);gate(-34,2.2,12);gate(-54,-2.2,3);gate(-54,2.2,9);wall(-24,0,2);wall(-44,0,2);document.querySelector('#panel').style.display='none';document.querySelector('#level').textContent='FASE '+level;hud()}document.querySelector('#start').onclick=start;
-function tick(t){let dt=Math.min(.04,(t-last)/1000||0);last=t;
+function fire(){const b=new T.Mesh(shotGeo,gold);b.position.set(gunX,1,-2);scene.add(b);shots.push({g:b,x:gunX,z:-2})}function start(){for(const a of [...army,...foes])kill(a);for(const b of shots)scene.remove(b.g);shots=[];hits=0;elapsed=0;enemySpawned=false;for(const g of gates)g.parts.forEach(p=>scene.remove(p));for(const w of walls)scene.remove(w.mesh);army=[];foes=[];gates=[];walls=[];dist=0;gunX=0;spawn=0;battle=false;playing=true;gate(-12,-2.2,20);gate(-12,2.2,4);gate(-28,-2.2,5);gate(-28,2.2,12);gate(-44,-2.2,3);gate(-44,2.2,9);wall(-20,0,2.6);wall(-36,0,2.6);document.querySelector('#panel').style.display='none';document.querySelector('#level').textContent='FASE '+level;hud()}document.querySelector('#start').onclick=start;
+function tick(t){const dt=Math.min(.04,(t-last)/1000||0);last=t;
 if(playing){
-spawn+=dt;while(spawn>.16){spawn-=.16;fire()}
-for(let i=shots.length-1;i>=0;i--){const b=shots[i];b.z-=dt*22;b.g.position.z=b.z;let removed=false;
-for(const g of gates){if(!g.done&&Math.abs(b.z-g.z)<.35&&Math.abs(b.x-g.x)<1.5){g.done=true;const count=Math.min(g.n,60);for(let j=0;j<count;j++){let x=Math.max(-4.5,Math.min(4.5,b.x+(Math.random()-.5)*2.5));army.push(soldier(false,x,g.z-1-Math.random()*2))}g.parts.forEach(p=>p.visible=false);removed=true;break}}
-if(!removed)for(const w of walls){if(Math.abs(b.z-w.z)<.45&&Math.abs(b.x-w.x)<w.w/2){removed=true;break}}
-if(b.z< -87)removed=true;
+elapsed+=dt;spawn+=dt;
+while(spawn>.19){spawn-=.19;fire()}
+if(!enemySpawned){enemySpawned=true;for(let i=0;i<35+level*12;i++)foes.push(soldier(true,(Math.random()-.5)*8,-62-Math.random()*7))}
+for(let i=shots.length-1;i>=0;i--){const b=shots[i];const old=b.z;b.z-=dt*19;b.g.position.z=b.z;let removed=false;
+for(const g of gates){if(old>=g.z&&b.z<=g.z&&Math.abs(b.x-g.x)<1.55){const count=Math.min(g.n,30);for(let j=0;j<count&&army.length<230;j++){const x=Math.max(-4.4,Math.min(4.4,b.x+(Math.random()-.5)*2.6));army.push(soldier(false,x,g.z-1-Math.random()*2))}g.done=true;removed=true;break}}
+if(!removed)for(const w of walls){if(old>=w.z&&b.z<=w.z&&Math.abs(b.x-w.x)<w.w/2){removed=true;break}}
+if(!removed){const j=foes.findIndex(e=>Math.abs(e.z-b.z)<.9&&Math.abs(e.x-b.x)<.65);if(j>=0){kill(foes[j]);foes.splice(j,1);hits++;removed=true}}
+if(b.z< -75)removed=true;
 if(removed){scene.remove(b.g);shots.splice(i,1)}}
-for(let i=army.length-1;i>=0;i--){const a=army[i];a.z-=dt*5;a.g.position.z=a.z;a.g.position.y=Math.sin(t*.008+i)*.06;let dead=false;
-for(const w of walls)if(Math.abs(a.z-w.z)<.4&&Math.abs(a.x-w.x)<w.w/2+.15){dead=true;break}
-if(a.z< -88){dead=true;hits++}
-if(dead){kill(a);army.splice(i,1)}}
-if(!battle&&shots.some(b=>b.z< -58)||!battle&&army.some(a=>a.z< -60)){battle=true;for(let i=0;i<35+level*12;i++)foes.push(soldier(true,(Math.random()-.5)*8,-82-Math.random()*5))}
-if(battle){for(let i=foes.length-1;i>=0;i--){const e=foes[i];e.z+=dt*1.1;e.g.position.z=e.z;
-const j=army.findIndex(a=>Math.abs(a.z-e.z)<.8&&Math.abs(a.x-e.x)<.8);
-if(j>=0){kill(army[j]);army.splice(j,1);kill(e);foes.splice(i,1);hits++}
-else if(e.z>1){end(false);break}}if(playing&&foes.length===0)end(true)}
-if(army.length>260){for(let i=0;i<army.length-260;i++)kill(army[i]);army=army.slice(-260)}
+for(let i=army.length-1;i>=0;i--){const a=army[i];const obstacle=walls.find(w=>a.z>w.z-2.8&&a.z<w.z+4&&Math.abs(a.x-w.x)<w.w/2+1.1);
+if(obstacle){const left=obstacle.x-obstacle.w/2-.65,right=obstacle.x+obstacle.w/2+.65;const target=Math.abs(a.x-left)<Math.abs(a.x-right)?left:right;a.x+=Math.sign(target-a.x)*Math.min(Math.abs(target-a.x),dt*7)}
+else if(a.z< -48&&foes.length){let nearest=null,best=Infinity;for(const e of foes){const d=Math.abs(e.z-a.z)+Math.abs(e.x-a.x)*1.5;if(d<best){best=d;nearest=e}}if(nearest)a.x+=Math.sign(nearest.x-a.x)*Math.min(Math.abs(nearest.x-a.x),dt*2.8)}
+a.x=Math.max(-4.55,Math.min(4.55,a.x));a.z-=dt*5.8;a.g.position.set(a.x,Math.sin(t*.009+i)*.04,a.z);
+const j=foes.findIndex(e=>Math.abs(e.z-a.z)<.9&&Math.abs(e.x-a.x)<.75);if(j>=0){kill(foes[j]);foes.splice(j,1);kill(a);army.splice(i,1);hits++;continue}
+if(a.z< -75){kill(a);army.splice(i,1)}}
+for(let i=foes.length-1;i>=0;i--){const e=foes[i];e.z+=dt*1.6;e.g.position.z=e.z;
+if(e.z>1){end(false);break}}
+if(playing&&foes.length===0)end(true);
+if(playing&&elapsed>85)end(false);
+if(army.length>230){army.splice(0,army.length-230).forEach(kill)}
 hud()}
-camera.position.set(0,22,20);camera.lookAt(0,0,-32);r.render(scene,camera);requestAnimationFrame(tick)}
+const focus=playing?Math.min(42,elapsed*2.4):20;camera.position.set(0,22,19-focus);camera.lookAt(0,0,-23-focus);r.render(scene,camera);requestAnimationFrame(tick)}
 requestAnimationFrame(tick);
 function move(e){if(playing){gunX=Math.max(-4.2,Math.min(4.2,(e.clientX/innerWidth-.5)*9.4));cannon.position.x=gunX}}r.domElement.addEventListener('pointerdown',e=>{r.domElement.setPointerCapture(e.pointerId);move(e)});r.domElement.addEventListener('pointermove',e=>{if(e.buttons||e.pointerType==='touch')move(e)});addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();r.setSize(innerWidth,innerHeight)});
 </script></body></html>
