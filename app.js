@@ -1,4 +1,4 @@
-/* Grande Cerco 0.5.0 — mobile controls, audio lifecycle and truthful battle HUD. */
+/* Grande Cerco 0.6.0 — mobile controls, audio lifecycle and truthful battle HUD. */
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
@@ -12,7 +12,7 @@ try{
  const gateLabels=game.gates.map(()=>{const e=document.createElement('div');e.className='gate';$('labels').append(e);return e;});
  function labels(){
   game.gates.forEach((g,i)=>{const el=gateLabels[i],p=renderer.project(g.x,1.5,g.z),l=renderer.project(g.x-g.w*.43,1.5,g.z),r=renderer.project(g.x+g.w*.43,1.5,g.z);
-   el.textContent='×'+g.m;el.style.left=p.x+'px';el.style.top=p.y+'px';el.style.width=Math.max(34,Math.min(155,r.x-l.x))+'px';el.classList.toggle('flash',g.flash>.04);});
+   el.textContent='×'+g.m;el.classList.toggle('gold',g.color==='gold');el.style.left=p.x+'px';el.style.top=p.y+'px';el.style.width=Math.max(34,Math.min(155,r.x-l.x))+'px';el.classList.toggle('flash',g.flash>.04);});
  }
  function draw(){renderer.render(game);labels();}
  function resize(){renderer.resize();draw();}
@@ -29,8 +29,8 @@ try{
   $('kills').textContent=s.kills;$('health').textContent=Math.max(0,s.health)+' / 5';$('ammo').textContent=s.ammo;$('time').textContent=Math.max(0,Math.ceil(game.duration-s.time))+'s';
   $('progress').style.width=((s.kills+s.breaches)/s.initialEnemies*100)+'%';$('pause').disabled=!['playing','paused'].includes(s.state);
   $('hint').textContent=s.ammo?'Arraste para mirar · disparo automático':'Sem cargas · suas tropas continuam lutando';
-  $('phase-title').textContent=s.phase==='assemble'?'I · FORME SEU EXÉRCITO':s.phase==='clash'?'II · GRANDE CERCO':'III · ÚLTIMA INVESTIDA';
-  $('phase-sub').textContent=s.time<6?'A horda avança em '+Math.ceil(6-s.time)+'s':s.phase==='assemble'?'Escolha os portões e prepare o confronto':s.phase==='clash'?'A frente de batalha está em disputa':'Quebre a última linha de defesa';
+  $('phase-title').textContent=s.phase==='assemble'?'ESCOLHA SUA ROTA':s.phase==='clash'?'DEFENDA A MURALHA':'ÚLTIMA INVESTIDA';
+  $('phase-sub').textContent=s.time<8?'A horda avança em '+Math.ceil(8-s.time)+'s':s.phase==='assemble'?'Escolha os portões e prepare o confronto':s.phase==='clash'?'A frente de batalha está em disputa':'Quebre a última linha de defesa';
   if(lastPhase!==s.phase){lastPhase=s.phase;$('phase').classList.remove('announce');void $('phase').offsetWidth;if(!renderer.reducedMotion)$('phase').classList.add('announce');}
  }
  function showResult(){
@@ -82,7 +82,7 @@ try{
  if(new URLSearchParams(location.search).get('test')==='1'||window.__TEST_MODE__===true)window.__gameTest={
   game,renderer,audio,begin,snapshot:()=>({...game.snapshot(),audio:audio.snapshot(),render:renderer.lastStats,frameMs,frames}),
   advance(seconds){for(let i=0;i<Math.round(seconds/Multidao.STEP)&&game.state==='playing';i++)game.step();hud();audio.update(game);draw();showResult();},
-  projected(){return {cannon:renderer.project(game.gunX,0,3.65),front:renderer.project(0,1,-37),castle:renderer.project(0,3,-42),gates:game.gates.map(g=>renderer.project(g.x,1.5,g.z))};}
+  projected(){return {cannon:renderer.project(game.gunX,0,3.65),front:renderer.project(0,.7,-21),upper:renderer.project(0,.7,-32),gates:game.gates.map(g=>renderer.project(g.x,1.5,g.z))};}
  };
 }catch(error){showGameError(error.message||String(error));console.error(error);}
 })();

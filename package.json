@@ -1,10 +1,1 @@
-{
-  "name": "multidao-cerco-medieval",
-  "version": "0.5.0",
-  "private": true,
-  "description": "Grande Cerco: WebGL, multidão real e áudio procedural",
-  "scripts": {
-    "test": "node --test tests/core.test.cjs",
-    "check": "node --check engine.js && node --check renderer.js && node --check audio.js && node --check app.js"
-  }
-}
+{"name":"multidao-muralha-do-norte","version":"0.6.0","private":true,"scripts":{"test":"node --test tests/core.test.cjs","check":"node --check engine.js && node --check renderer.js && node --check audio.js && node --check app.js"}}

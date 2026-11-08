@@ -1,33 +1,27 @@
-# Validação — Grande Cerco 0.5.0
-
-Executada em 8 de novembro de 2026, sobre os arquivos desta versão. Resultados instrumentados; não foi realizada uma sessão em telefone físico.
+# Validação 0.6.0 — 8 de novembro de 2026
 
 ## Lógica: 18 testes aprovados
 
-Comando: `node --test tests/core.test.cjs`.
+Comando executado: `node --test tests/core.test.cjs`. Resultado: 18 passaram, zero falhas, aproximadamente 15,25 segundos no ambiente de testes.
 
-Verificados: 720 inimigos reais e posições iniciais válidas; disparo e consumo de carga; formação durante a preparação; multiplicação exata ×5 ×4 e prevenção de multiplicação repetida; colisões; três posições fixas de mira; contagem conservada de tropas e baixas; vitória padrão; derrota sem disparos; pausa; reinício; equivalência a 30/60/120 atualizações; fase espelhada; movimentos rápidos da mira; tempo máximo; efeitos limitados; 960 inimigos no nível 20.
+Testes de disparo único confirmaram: rota central gera 20 soldados, esquerda 50 e direita 99, sem nova multiplicação dos clones. Foram verificados colisões, posições finitas, conservação dos contadores, limites de munição, pausa, reinício, mudança de mira, tempo máximo e equivalência entre atualizações de tela a 30/60/120 Hz.
 
-Na partida padrão, a vitória ocorreu após 23,567 segundos de simulação, com 720 abates, 43 disparos e pico de 908 personagens simultâneos. Houve 344 aliados sobreviventes. Esses valores descrevem uma execução determinística específica, não garantem vitória para qualquer estratégia.
+Partidas determinísticas da fase 1, com 4.000 invasores e mira fixa:
 
-## Navegador: cinco configurações aprovadas
+- Esquerda: vitória em 46,433 segundos de simulação, 4.000 abates e zero invasões.
+- Centro: derrota em 37 segundos, 1.042 abates, sem tropas nem cargas restantes.
+- Direita: vitória em 30,333 segundos, 4.000 abates, zero invasões e pico de 4.337 unidades simultâneas.
 
-Chromium 144.0.7559.96, WebGL por SwiftShader, display virtual. Telas 360×740, 390×780, 393×852, 844×390 e 1366×768; toque emulado nas quatro primeiras.
+Esses resultados descrevem as sementes e estratégias testadas, não garantem vitória em qualquer partida. O cenário sem disparos terminou por invasões reais da defesa.
 
-Cobertura: renderização e ausência de erros WebGL/JavaScript; toque ou teclado; canhão, portões e castelo enquadrados; ausência de rolagem horizontal; pausa e retomada; ativação do áudio somente após interação; controles separados de música/efeitos; volume; redução de movimento; modo LEVE; combate; contador correspondente às tropas reais; vitória e próxima fase.
+## Navegador: quatro configurações aprovadas
 
-Seis reinícios em cada configuração criaram e liberaram seis buffers de cenário, sem acumulação desses buffers. O número de personagens desenhados correspondeu ao número de unidades vivas. O desenho usou até sete chamadas instanciadas nos cenários verificados.
+Chromium 144.0.7559.96 com WebGL por SwiftShader e display virtual: 390×780, 360×740, 844×390 e 1366×768. Toque emulado nas três primeiras; teclado na última.
 
-## Som e recuperação
+Verificados: inicialização, enquadramento de canhão/frente/portões, ausência de rolagem horizontal, controles por toque/teclado, pausa e retomada, ativação e suspensão do áudio, configurações independentes de música/efeitos, volume, redução de movimento, HD/LEVE, contadores reais e combate. A configuração 390×780 também completou a vitória e avançou à fase 2. Quatro reinícios criaram e liberaram quatro buffers de cenário.
 
-O contexto de áudio ficou ativo após o botão de início e suspenso durante a pausa. A saída apresentou sinal não nulo nos testes. Música e efeitos puderam ser silenciados separadamente.
+Nenhum erro JavaScript ou WebGL foi registrado nessas execuções. A quantidade de personagens enviados ao renderizador correspondeu às unidades vivas, com no máximo sete chamadas de desenho nos cenários verificados. Também passaram os casos de WebGL indisponível, com mensagem de recuperação, e áudio indisponível, mantendo o jogo utilizável.
 
-Uma amostra de quatro segundos foi renderizada pela própria implementação em OfflineAudioContext, a 48 kHz: pico normalizado 0,1516, RMS 0,00904 e máximo de 21 vozes, abaixo do limite de 40. Essa amostra não apresentou clipping. Isso comprova geração de sinal, não uma avaliação auditiva humana em todos os aparelhos.
+## Limitações
 
-Também foram aprovados os casos de WebGL indisponível (mensagem de recuperação) e Web Audio indisponível (jogo permanece utilizável sem som).
-
-## Limitações explícitas
-
-A navegação HTTP pelo Chromium deste ambiente foi bloqueada com `ERR_BLOCKED_BY_ADMINISTRATOR`. Os testes gráficos utilizaram os arquivos de produção carregados em memória; não foram testes de navegação no endereço público. Trechos da partida foram acelerados pela ferramenta de testes usando a mesma simulação.
-
-Android físico, iPhone físico e Safari não foram testados. Não há medição de FPS de celular ou promessa de fluidez em todos os aparelhos. Publicação no Pages e integridade dos arquivos distribuídos são verificações separadas.
+Os arquivos de produção foram carregados em memória no navegador. Partes da simulação foram aceleradas com as mesmas regras do jogo. Android físico, iPhone físico, Safari, qualidade sonora nos alto-falantes de celulares e FPS em hardware móvel não foram testados. Publicação no GitHub Pages é uma verificação separada. As capturas são do jogo efetivamente renderizado, não imagens conceituais.
