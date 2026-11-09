@@ -1,45 +1,48 @@
-# Validação 0.8.0 — 8 de novembro de 2026
+# Validação 0.9.0 — Cerco Relâmpago e Refúgio Secreto
 
-Estado: implementada e testada em ambiente de desenvolvimento, para revisão. Sem substituição do site público. Fontes-base conferidas pelo SHA de blob com a árvore do commit `aa1c0ea90aa4839357fcfd3b3182021102a1a3bb`.
+Revisão executada sobre a base 0.8.0 do commit `a685f4e4a16d80a0a8345ad7d853f70a62325386`. Os cinco arquivos-base inspecionados foram conferidos por SHA de blob. Não há publicação ou alteração em `main` nesta entrega.
 
-## Testes funcionais
+## Lógica
 
-- **48/48 testes de lógica aprovados:** 35 existentes e 13 novos. Gerador determinístico, temas em ciclos, ondas de elite/comandante, progressão além da sexta onda, repetição sem dificuldade oculta, limites de configuração, conservação da fila, interpolação, pausa, migração e saneamento de progresso.
-- **18/18 testes de regressão aprovados** no cenário 0.6.0 preservado.
-- **14 partidas completas** no modo infinito: ondas 1, 5, 10, 25, 100, 1.000 e 1.000.000, com sementes 20261108 e 42. Todas venceram com a estratégia usada: segundo canhão, 99 reforços, terceiro canhão, centro e rajada quando disponível. Não significa vitória garantida para qualquer jogador.
-- As partidas verificaram contagem de tropas, baixas, munição, clones em espera e posições transitáveis. Duração das vitórias: aproximadamente 31,9–48,6 segundos de simulação. Testar a onda 1.000.000 significa gerar e executar aquela onda, não percorrer um milhão de partidas.
+**66/66 testes aprovados**: 48 testes anteriores e 18 novos. Comando: `node --test tests/core.test.cjs tests/campaign.test.cjs tests/endless.test.cjs tests/rush-haven.test.cjs`.
 
-## Interface e gráficos
+Cobertura nova: início imediato dos inimigos; três disparos cobrados no primeiro segundo; posição transitável da vanguarda; pausa; recibo de recompensa idempotente; moedas em vitórias e derrotas; bloqueio da base sem selos; custos e ordem das construções; limite de nível; coleta única de cada moeda; flechas com tempo de viagem; vitória da base e prêmio único; proibição de melhorar durante a invasão; saneamento de dados e falha de armazenamento.
 
-Chromium **144.0.7559.96**, Xvfb, WebGL por **SwiftShader**. Cinco viewports: 360×740, 390×780, 393×852, 844×390 e 1366×768; toque emulado nos quatro primeiros.
+## Partidas de campanha e infinito
 
-Passaram inicialização WebGL, seleção entre campanha e infinito, toque/cancelamento, teclado, mira, pausa/retomada, áudio, volume, redução de movimento, modos gráficos, rajada, mudança de orientação, vitória e próxima onda. A transição isolada da onda 6 para 7 usa uma fixture; separadamente, a onda 10 executou combate completo com as regras reais.
+`tests/matrix090.py`: **14 partidas completas**, seis fases com sementes 20261108 e 42 usando investimento nas torres, mais duas partidas mirando somente o centro. Todas venceram nas estratégias testadas e passaram nas verificações de tropas, munição e posições.
 
-Nenhum erro JavaScript ou WebGL nas cinco execuções finais. Seis trocas de cenário criaram e liberaram 12 buffers de cenário/decoração por viewport, sem criar outro contexto de áudio. Isso cobre esses recursos instrumentados, não prova ausência universal de vazamentos. A representação visual conferiu `visíveis + fora da câmera = unidades vivas`.
+Com investimento nas torres, os primeiros golpes ocorreram entre **3,433 e 3,933 segundos** de simulação. As conclusões ficaram entre **20,200 e 34,933 segundos**. Não são tempos de CPU nem previsões para jogadores humanos.
 
-Casos sem WebGL e sem Web Audio exibiram recuperação ou mantiveram o jogo sem som. A persistência foi validada como módulo com armazenamento simulado, incluindo migração e falha de quota. Persistência através de recarga em uma origem HTTP real não foi validada.
+| Fase | Conclusão nas duas sementes |
+|---|---|
+| 1 | 20,200–20,333 s |
+| 2 | 26,033–26,167 s |
+| 3 | 28,467–28,533 s |
+| 4 | 25,067–25,133 s |
+| 5 | 30,767 s |
+| 6 | 34,767–34,933 s |
 
-## Comparativo medido com a 0.7.1
+Três execuções adicionais do modo infinito, ondas 1, 10 e 1.000, terminaram em vitória em 20,633, 23,933 e 31,000 segundos, respectivamente. A geração de reforços continua contabilizando tropas pendentes separadamente. A vitória pode encerrar o cerco com reforços ainda na fila: eles não são apresentados como soldados já existentes no campo.
 
-Cena congelada após 600 passos determinísticos da fase 6, com **4.012 unidades vivas**, resolução 390×780 e razão de pixels 1. Quatro execuções na ordem antiga/nova/nova/antiga. Cada execução descartou 20 quadros de aquecimento e mediu 80. Ambas renderizaram as mesmas unidades e baixas. O enquadramento e o acabamento correspondem a cada versão; não se trata de comparação pixel a pixel idêntica.
+Essas amostras demonstram funcionamento e ritmo mais rápido; não comprovam balanceamento difícil, taxa de retenção, potencial de viralização ou taxa real de vitória. As duas estratégias avaliadas venceram; recomenda-se avaliação humana antes de aumentar dificuldade.
 
-| Métrica | 0.7.1 | 0.8.0 |
-|---|---:|---:|
-| Intervalo médio entre quadros, média das duas execuções | 71,66 ms | 61,04 ms |
-| p95 do intervalo, média das duas execuções | 133,30 ms | 116,60 ms |
+## Navegador e base secreta
 
-Nesse teste, o intervalo médio caiu **14,8%**. A cena permaneceu abaixo de 30 quadros por segundo em software; não afirmar que o problema de fluidez está resolvido em celulares. A amostra é pequena e não mede bateria, temperatura, GPU móvel ou jogo inteiro em tempo real.
+Chromium 144.0.7559.96, SwiftShader e Xvfb. Cinco tamanhos: 360×740, 390×780, 393×852, 844×390 e 1366×768. Toque emulado nos quatro primeiros.
 
-Na simulação isolada, quatro partidas alternadas da fase 6 terminaram com os mesmos 4.000 abates e 53,5 segundos de simulação. Tempo de CPU médio: aproximadamente 6,33 s na base e 6,18 s na revisão, diferença pequena (cerca de 2,4%), sem alegação de significância estatística.
+Em cada configuração: partida completa pela mesma simulação, moeda/seletor desbloqueado no resultado, quatro construções, toque no terreno com projeção invertida, invasão da base, pausa, vitória, coleta, rotação e retorno ao cerco. O recibo não foi duplicado ao reapresentar o resultado. Seis visitas adicionais ao Refúgio não criaram novos buffers: o cenário e o contexto WebGL são reutilizados. Nenhum erro JavaScript ou WebGL nas cinco execuções finais.
 
-Uma tentativa de reaproveitar também as grades espaciais não mostrou ganho e foi removida. O código entregue mantém a grade original; reutiliza os buffers de desenho e acelera a amostragem da estrada. Os logs finais correspondem à implementação escolhida.
+O compartilhamento foi testado com um substituto instrumentado de `navigator.share`: nenhuma chamada antes do botão e uma chamada após o clique. Nenhuma mensagem foi enviada a um aplicativo real. Os testes não validam a integração com WhatsApp, Instagram ou outro destino.
 
-## HTML único e restrições
+Trechos foram acelerados pelo gancho de testes, mantendo as mesmas regras de combate. As capturas são renderizações do código testado, não imagens conceituais.
 
-O HTML único incorpora os mesmos scripts e estilos, sem dependências remotas. Seu menu, início de onda e pausa foram executados em memória sem erros. Navegar diretamente para o arquivo foi bloqueado pelo Chromium do ambiente com `ERR_BLOCKED_BY_ADMINISTRATOR`; isso não foi contornado nem apresentado como teste de abertura em Android.
+## Limitações
 
-Os testes de navegador carregaram os arquivos de produção em memória. Trechos de simulação foram acelerados pelo gancho de testes, sem alterar regras de vitória. Nenhum teste em Android físico, iPhone ou Safari foi executado. A nova versão não foi publicada no GitHub Pages nesta entrega.
+A navegação no endereço local pelo Chromium retornou `ERR_BLOCKED_BY_ADMINISTRATOR`. Os testes executaram os arquivos de produção em memória, sem contornar o bloqueio. Persistência foi verificada como módulo com armazenamento simulado; recarga em uma origem HTTP real não foi validada. O aviso de salvamento indisponível aparece nas capturas desse ambiente.
 
-## Rastreabilidade
+Não houve teste em Android físico, iPhone, Safari, benchmark novo de FPS, medição de temperatura ou avaliação sonora em alto-falantes. Esta versão acelera as regras e acrescenta uma base; não é uma certificação de fluidez. O acabamento segue simplificado e original, sem modelos do anúncio.
 
-`evidence-v080` reúne logs, matriz, capturas, métricas e SHA-256 dos arquivos. Os testes são reproduzíveis em `tests/*080*` e `tests/endless.test.cjs`. A versão anterior permanece no histórico e em `legacy/campaign-071`.
+Moedas e construções persistem quando o armazenamento local está disponível. Moedas não recolhidas e estado transitório da invasão não persistem após fechar a página. Não há proteção contra adulteração deliberada de um save local.
+
+Logs, matriz, capturas e hashes estão em `evidence-v090` no pacote entregue. Os módulos de produção são compatíveis com GitHub Pages, mas esta entrega permanece em branch de revisão.

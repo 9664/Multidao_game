@@ -119,7 +119,7 @@ class Game{
   let farBlue=0;for(const u of this.blue)farBlue=Math.max(farBlue,u.s);
   for(const u of all){
    if(u.hp<=0)continue;u.age+=dt;u.air=Math.max(0,u.air-dt);u.cooldown-=dt;u.hit=Math.max(0,u.hit-dt);u.swing=Math.max(0,u.swing-dt);
-   if(u.team==='red'&&this.time<7){u.walking=0;continue;}
+   if(u.team==='red'&&this.time<(this.cfg.enemyDelay??7)){u.walking=0;continue;}
    const red=u.team==='red',direction=red?-1:1;
    if(red&&u.s>farBlue+3.5&&u.s>this.road.plateauS+2){this.road.move(u,-this.cfg.redSpeed*dt,0);u.walking=1;continue;}
    const old={x:u.x,z:u.z},enemy=this.closest(u,red?bg:rg),boss=this.boss;

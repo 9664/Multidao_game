@@ -1,15 +1,16 @@
 {
-  "name": "multidao-cerco-infinito",
-  "version": "0.8.0",
+  "name": "multidao-cerco-relampago",
+  "version": "0.9.0",
   "private": true,
   "scripts": {
-    "check": "node --check endless.js && node --check fast-road.js && node --check polish.js && node --check progress.js && node --check play.js",
-    "test": "node --test tests/core.test.cjs tests/campaign.test.cjs tests/endless.test.cjs",
+    "check": "node --check engine.js && node --check rush.js && node --check rush-view.js && node --check haven.js && node --check haven-view.js && node --check haven-ui.js && node --check play.js",
+    "test": "node --test tests/core.test.cjs tests/campaign.test.cjs tests/endless.test.cjs tests/rush-haven.test.cjs",
     "test:legacy": "node --test legacy/north-wall/tests/core.test.cjs",
     "test:campaign": "python tests/matrix071.py",
-    "test:browser": "xvfb-run -a python tests/browser080.py",
+    "test:browser": "xvfb-run -a python tests/browser090.py",
     "test:endless": "python tests/matrix080.py",
     "bench:logic": "node tests/bench080.cjs",
-    "bench:render": "xvfb-run -a python tests/render-bench080.py"
+    "bench:render": "xvfb-run -a python tests/render-bench080.py",
+    "test:rush": "python tests/matrix090.py"
   }
 }
