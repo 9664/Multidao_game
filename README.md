@@ -1,51 +1,38 @@
-# Multidão 0.9.2 — Impacto e Variedade
+# Multidão 1.0.0 — Ascensão dos Reinos
 
-Atualização solicitada para publicação no GitHub Pages, baseada no commit `40122b9bfa2c407c50e993f652620087501c68c0`. Mantém campanha, modo infinito, moedas e Refúgio Secreto.
+Versão aprovada pelo usuário para publicação no GitHub Pages em 9 de novembro de 2026, sobre a base 0.9.2 (`2f2a1bfe4837ae08c92bb0b2764cc2a979cfa11d`). Os scripts e estilos de produção são os mesmos do pacote de revisão aprovado.
 
-## Disparos
+## Jogar
 
-Foi reproduzido um problema concreto na versão anterior: 100 efeitos de impacto preenchiam a fila e podiam impedir o clarão do canhão, mesmo com um tiro real disparado. As balas contra torres também completavam o trajeto em cerca de cinco passos de simulação (0,167 s), podendo passar entre quadros lentos.
+Antes de iniciar, escolha a doutrina: **Vanguarda** dá +1 de vida aos novos soldados; **Artilharia** dobra o dano contra torres com salvas 20% mais espaçadas; **Enxame** reduz o intervalo das salvas em 18%, com 6 cargas a menos e menos 1 de vida por soldado. A escolha só muda antes da partida.
 
-A nova versão reserva prioridade para o clarão, registra trajetória anterior/atual, desenha rastros curtos independentes da fila de impactos e mantém uma breve marca visual após o contato. Esses efeitos não aplicam dano. Cada bala termina explicitamente em impacto, terreno ou ponto de destino vazio. Uma torre já destruída não concede outra recompensa.
+Durante o cerco, use **Impacto** para bombardear a frente mais próxima ou **Geada** para desacelerar os inimigos atingidos. As habilidades consomem energia e têm recarga. Duas conquistas de abates pausam a batalha para escolher reforços; o efeito vale somente naquela partida.
 
-A munição continua limitada e cada tiro consome uma carga. Agora há um aviso de últimas cargas e de **SEM CARGAS — TROPAS CONTINUAM LUTANDO**, distinguindo uma pausa legítima dos disparos de uma falha visual. O rastro respeita a profundidade da cena; não atravessa estruturas para simular acertos.
+O comandante recebe experiência e patentes por partidas concluídas. As nove fases, o modo infinito, as moedas e o Refúgio Secreto permanecem. Campanha e base conservam suas chaves de armazenamento; o comando usa `multidao-command-100`. O progresso é local, sem conta ou sincronização entre aparelhos. Limpar os dados do navegador pode apagá-lo.
 
-## Nove fases e mais formatos
+No celular, arraste no campo ou use a barra de mira. No teclado, as setas movem a bateria, 1 aciona Impacto, 2 aciona Geada e espaço pausa. A qualidade gráfica pode ser AUTO, HD ou LEVE. Não há compras nem envio automático para redes sociais.
 
-As seis fases existentes permanecem; a Ponte da Aurora passa a usar uma ponte suspensa. Entram:
+## Executar e testar
 
-| Fase | Nome | Percurso | Formação inicial |
-|---|---|---|---|
-| 7 | Ruínas da Floresta | Clareiras alternadas e passagens entre ruínas | Pelotões alternados |
-| 8 | Bastiões da Cidadela | Três pátios ligados por gargalos | Duas colunas |
-| 9 | Passarelas do Porto | Cotovelos alternados sobre o mar | Centro e flancos |
-
-O conjunto de formações inclui bloco compacto, serpente, cunha, duas colunas, pelotões e flancos. Os caminhos são descritos pela mesma geometria usada no piso e no movimento. Não há bifurcação com controle de duas rotas nem espiral nesta entrega.
-
-O modo infinito também usa os novos formatos, com gerador determinístico de versão 2. As sementes, o recorde e o número da onda salva são preservados, mas os percursos gerados podem diferir dos da 0.9.1. Tentar novamente na 0.9.2 repete a configuração sem ajuste oculto após derrotas.
-
-## Dificuldade explícita
-
-A resistência, a cadência e a proporção de elites aumentam. Couraçados são bronze/dourados, têm três pontos de vida adicionais e se movem mais devagar; batedores avançam mais rápido. Nas fases iniciais o soldado vermelho regular tem 2 HP; nas finais pode chegar a 10 HP. Esses valores têm limites no infinito.
-
-Cada melhoria da bateria também protege **novos** soldados: 3 HP com um canhão, 4 com dois e 5 com três. Não há alteração retroativa em unidades que já estavam no campo. A descrição inicial explica o benefício. As formações mudam o risco de investir cedo: nos bastiões é importante sustentar a frente antes das melhorias.
-
-Quando restam poucos invasores, aliados podem voltar para enfrentar sobreviventes reais, em vez de caminhar até o fim deixando inimigos para trás. O alcance continua limitado pela distância no caminho.
-
-## Execução
+Não há build, CDN, banco ou dependências de produção.
 
 ```sh
 python -m http.server 8000
 npm run check
 npm test
 npm run test:legacy
-FULL=1 python tests/matrix092.py
-CASE=phone360,phone390,phone393 xvfb-run -a python tests/browser092.py
-CASE=landscape,desktop xvfb-run -a python tests/browser092.py
+python tests/matrix100.py
+CASE=phone390 xvfb-run -a python tests/browser100.py
+mkdir -p evidence-v100
+node tests/bench100.cjs
 ```
 
-Sem build, banco, CDN ou dependências de produção. Testes de navegador usam Playwright para Python, `/usr/bin/chromium` e Xvfb. Neste ambiente os arquivos de produção foram carregados em memória porque a navegação HTTP foi bloqueada pelo Chromium.
+Os testes gráficos exigem Playwright para Python, Chromium em `/usr/bin/chromium` e Xvfb. Carregam os arquivos reais em memória; não equivalem a um teste em telefone físico ou a navegação no endereço público.
 
-Módulos novos: `routes092.js`, `impact092.js`, `impact092-view.js` e `impact092.css`. A página carrega esses módulos após os anteriores. `?stage=7&v=0.9.2` seleciona diretamente a floresta; `stage=8` abre os bastiões e `stage=9` as passarelas. Sem parâmetro, a seleção salva é respeitada.
+## Implementação e limites
 
-Veja `TEST_REPORT.md` para resultados reais. Não há teste físico Android/iPhone/Safari nem nova promessa de FPS. O compartilhamento continua dependente de um toque e não envia conteúdo automaticamente.
+`tactics100.js` implementa doutrinas, habilidades, escolhas, progresso do comandante e busca de vizinhos. `ascension-view100.js` implementa atlas animado e efeitos; `ascension100.css` define a interface. Integrações em `play.js`, `index.html` e `visual091.js`.
+
+Modelos e texturas são procedurais. O ganho medido na revisão é de tempo de simulação em Node, não de FPS no celular. Android físico, iPhone e Safari não foram testados. Não se promete desempenho de 30/60 FPS nem equivalência ao acabamento do anúncio. Veja `TEST_REPORT.md`.
+
+A versão anterior permanece no histórico Git. A confirmação do deploy deve ser consultada no workflow do GitHub Pages associado ao commit desta versão.

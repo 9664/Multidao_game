@@ -1,13 +1,15 @@
-/* v0.9.2: campaign + seeded endless mode. Performance and progress remain local. */
+/* v1.0.0: campaign + seeded endless mode. Performance and progress remain local. */
 (function(){
 'use strict';
-const $=id=>document.getElementById(id),C=MultidaoImpact092;
+const $=id=>document.getElementById(id),C=MultidaoAscension;
 try{
  let storage;try{storage=localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('storage unavailable')}};}
  let save=SiegeProgress.load(storage);
+ const command=C.Command.load(storage);let commandReward=null;
+ const saveCommand=()=>C.Command.save(storage,command);
  const requestedStage=Number(new URLSearchParams(location.search).get("stage"));
  if(Number.isInteger(requestedStage)&&requestedStage>=1&&requestedStage<=C.stages.length){save.mode="campaign";save.selected=requestedStage;}
- const game=new C.Game({level:save.selected,mode:save.mode,runSeed:save.endless.seed,wave:save.endless.checkpoint}),renderer=new MultidaoImpactRenderer092($('game')),audio=new SiegeAudio();
+ const game=new C.Game({level:save.selected,mode:save.mode,runSeed:save.endless.seed,wave:save.endless.checkpoint,doctrine:command.doctrine}),renderer=new MultidaoAscensionRenderer($('game')),audio=new SiegeAudio();
  audio.setEffects(!!save.sound);audio.setMusic(!!save.music);audio.setVolume(Number(save.volume));renderer.reducedMotion=!save.motion;
  let pointer=null,last=performance.now(),lastDraw=0,lastUI=0,frameMean=33,slowFrames=0,draws=0,resultShown=false,toastUntil=0,lastEvent=0,damage=0,damageUntil=0;
  let lastSimulationCost=0;
@@ -28,16 +30,35 @@ try{
   game.towers.forEach((t,i)=>{const e=towers[i],q=renderer.towerAnchor?renderer.towerAnchor(t):renderer.project(t.x,2.75,t.z);e.hidden=t.state!=='active';if(e.hidden)return;e.style.left=q.x+'px';e.style.top=q.y+'px';e.classList.toggle('targeted',game.target()?.id===t.id);const text=(t.kind==='cannon'?'+1':'+99')+'|'+Math.max(0,t.hp);if(e.dataset.value!==text){e.dataset.value=text;e.replaceChildren();const sign=document.createElement('b'),hp=document.createElement('span');sign.textContent=t.kind==='cannon'?'+1':'+99';hp.textContent=Math.max(0,t.hp);e.append(sign,hp);}e.setAttribute('aria-label','Mirar '+(t.kind==='cannon'?'melhoria de um canhão e escudo para novos soldados':'99 soldados')+', resistência '+t.hp+' de '+t.maxHP);e.onclick=()=>{if(game.state==='playing'){game.aim(t.x);$('aim').value=game.aimX;}};});
   if(damageUntil>game.time&&!['dormant','defeated'].includes(game.boss.state)){const p=renderer.project(game.boss.x,3.4,game.boss.z);floating.hidden=false;floating.textContent='−'+damage;floating.style.left=p.x+'px';floating.style.top=(p.y-10*(1-(damageUntil-game.time)/.5))+'px';}else floating.hidden=true;
  }
+ function commandHUD(){
+  const rank=C.Command.rank(command.xp);setText('commander-rank',rank.name);setText('commander-xp',command.xp+' XP');$('rank-progress').style.width=(rank.progress*100)+'%';
+  for(const [id,d] of Object.entries(C.doctrines)){const b=$('doctrine-'+id);b.classList.toggle('selected',id===game.doctrine);b.setAttribute('aria-pressed',String(id===game.doctrine));b.disabled=game.state!=='ready';}
+  setText('doctrine-description',C.doctrines[game.doctrine].description);
+ }
+ function skillHUD(){setText('energy',Math.floor(game.energy));$('energy-fill').style.width=game.energy+'%';
+  for(const [id,s] of Object.entries(C.skills)){const b=$('skill-'+id),cd=game.skillCooldown[id];b.disabled=game.state!=='playing'||game.energy<s.cost||cd>0;setText('cooldown-'+id,cd>0?Math.ceil(cd)+'s':s.cost+' EN');}
+  $('tactics').hidden=game.state==='ready';
+ }
+ function showChoice(){if(!game.choicePending||secret.active)return;const dialog=$('command-choice');if(!dialog.hidden)return;
+  audio.suspend();pointer=null;dialog.hidden=false;$('overlay').hidden=true;setText('choice-title',game.choiceTier===1?'Mude o rumo da batalha.':'Prepare o golpe final.');
+  $('choice-cards').replaceChildren();for(const id of game.offers){const c=C.cards[id],b=document.createElement('button');b.className='boon-card';b.dataset.card=id;
+   const tag=document.createElement('small'),name=document.createElement('strong'),desc=document.createElement('span');tag.textContent=c.type;name.textContent=c.name;desc.textContent=c.text;b.append(tag,name,desc);
+   b.onclick=()=>{if(game.choose(id)){dialog.hidden=true;last=performance.now();toast(c.name.toUpperCase());unlock();hud();draw();}};$('choice-cards').append(b);}
+  $('choice-cards').firstElementChild?.focus();
+ }
+ for(const id of Object.keys(C.doctrines))$('doctrine-'+id).onclick=()=>{if(game.setDoctrine(id)){command.doctrine=id;saveCommand();renderer.rebuild(game);intro();hud();draw();}};
+ for(const id of Object.keys(C.skills))$('skill-'+id).onclick=()=>{if(game.cast(id)){toast(C.skills[id].name.toUpperCase()+' · FRENTE MAIS PRÓXIMA');hud();draw();}};
  function events(){for(const e of game.events){if(e.id<=lastEvent)continue;lastEvent=e.id;
   if(e.type==='upgrade')toast('BATERIA AMPLIADA · '+e.cannons+' CANHÕES');
   if(e.type==='reinforce')toast('+99 REFORÇOS A CAMINHO');
   if(e.type==='bossEntry')toast(game.stage.boss.toUpperCase()+' CHEGOU');
   if(e.type==='bossDefeated')toast('COMANDANTE DERROTADO');
   if(e.type==='ammoEmpty')toast('SEM CARGAS · SUAS TROPAS CONTINUAM LUTANDO');
+  if(e.type==='skillImpact'&&audio.ctx?.state==='running'&&audio.enabled){if(e.skill==='meteor')audio.cannon(audio.ctx.currentTime);else audio.gate(audio.ctx.currentTime,1);}
   if(e.type==='bossHit'){if(game.time>damageUntil)damage=0;damage+=e.damage;damageUntil=game.time+.5;}
  }}
  function toast(text){setText('toast',text);$('toast').hidden=false;toastUntil=game.time+2;}
- function hud(){secret.syncMenu();
+ function hud(){secret.syncMenu();skillHUD();commandHUD();
   const low=game.ammo<=10; $('weapon-status').hidden=game.state!=='playing'||!low;
   setText('weapon-status',game.ammo===0?'SEM CARGAS · TROPAS CONTINUAM LUTANDO':'ÚLTIMAS '+game.ammo+' CARGAS');
   $('ammo').classList.toggle('low-ammo',low);
@@ -48,18 +69,21 @@ setText('combo',game.combo>9?'SEQUÊNCIA '+game.combo:'');setText('battle-coins'
   const b=game.boss;$('bossbar').hidden=b.state==='dormant';setText('boss-name',b.state==='defeated'?'COMANDANTE DERROTADO':game.stage.boss.toUpperCase());setText('boss-hp',Math.max(0,b.hp)+' / '+b.maxHP);$('boss-fill').style.width=Math.max(0,b.hp)/b.maxHP*100+'%';if(b.state!=='dormant'){const bp=renderer.project(b.x,5.8,b.z);$('bossbar').style.top=Math.max(53,Math.min(renderer.height*.65,bp.y-20))+'px';$('bossbar').style.left=Math.max(8,Math.min(renderer.width-128,bp.x-60))+'px';}$('warning').hidden=!['windup','strike'].includes(b.state);setText('warning',b.state==='windup'?'GOLPE EM '+Math.max(.1,b.timer).toFixed(1)+'s':'IMPACTO');
   $('progress').style.width=(game.metrics.kills+game.metrics.breaches)/game.initialEnemies*100+'%';if(game.time>toastUntil)$('toast').hidden=true;
  }
- function intro(){resultShown=false;$('share').hidden=true;$('share-copy').hidden=true;setText('share-status','');setText('result-gold','');secret.syncMenu();setText('result-stars','');$('overlay').hidden=false;$('result').hidden=true;setText('eyebrow',(game.mode==='endless'?'ONDA '+game.wave+' · CERCO INFINITO':'FASE '+game.level+' / '+C.stages.length)+' · v'+C.VERSION);setText('title',game.stage.name);setText('description',game.stage.description+' '+game.initialEnemies.toLocaleString('pt-BR')+' invasores e portão ×'+game.cfg.gate+'. Formação: '+C.formations[game.stage.formation]+'. '+game.eliteCount+' couraçados e '+game.runnerCount+' batedores. Cada melhoria da bateria aumenta a resistência dos novos soldados.');setText('start',game.mode==='endless'?'INICIAR A ONDA':'INICIAR A FASE');setText('fine','A horda avança desde o primeiro disparo. Destrua torres, multiplique tropas e reúna 3 selos para revelar a base secreta.');$('retry').hidden=true;}
+ function intro(){resultShown=false;commandReward=null;$('command-choice').hidden=true;$('loadout').hidden=false;$('debrief').hidden=true;document.body.classList.add('is-home');$('share').hidden=true;$('share-copy').hidden=true;setText('share-status','');setText('result-gold','');secret.syncMenu();setText('result-stars','');$('overlay').hidden=false;$('result').hidden=true;setText('eyebrow',(game.mode==='endless'?'ONDA '+game.wave+' · CERCO INFINITO':'FASE '+game.level+' / '+C.stages.length)+' · v'+C.VERSION);setText('title',game.stage.name);setText('description',C.formats[game.stage.format]+' · '+C.formations[game.stage.formation]+'.');setText('brief-enemies',game.initialEnemies.toLocaleString('pt-BR'));setText('brief-gate','×'+game.cfg.gate);setText('brief-elites',game.eliteCount);setText('start',game.mode==='endless'?'INICIAR A ONDA':'INICIAR A FASE');setText('fine','Arraste para mirar. Use Impacto e Geada para mudar o confronto. Cada vitória fortalece seu comando.');$('retry').hidden=true;}
  function select(level){matchId=runId();reward=null;audio.reset();game.reset(level);if(game.mode==='campaign')save.selected=game.level;else save.endless.checkpoint=game.wave;save.mode=game.mode;write();renderer.rebuild(game);lastEvent=0;damage=0;damageUntil=0;toastUntil=0;$('toast').hidden=true;pointer=null;$('aim').value=0;intro();hud();draw();}
  async function unlock(){await audio.unlock();if(document.hidden||game.state!=='playing'||secret.active)await audio.suspend();settings();}
- function begin(){game.start();resultShown=false;last=performance.now();lastDraw=0;$('overlay').hidden=true;unlock();hud();draw();}
- function pause(){if(game.state!=='playing')return;game.pause();audio.suspend();pointer=null;$('overlay').hidden=false;setText('eyebrow','PAUSA · '+game.stage.name);setText('title','A batalha aguarda.');setText('description','Simulação e áudio estão pausados.');setText('start','CONTINUAR');setText('fine','Você pode escolher outra fase ou retomar esta partida.');$('result').hidden=true;$('retry').hidden=false;hud();}
+ function begin(){document.body.classList.remove('is-home');game.start();resultShown=false;last=performance.now();lastDraw=0;$('overlay').hidden=true;unlock();hud();draw();}
+ function pause(){if(game.state!=='playing')return;$('loadout').hidden=true;game.pause();audio.suspend();pointer=null;$('overlay').hidden=false;setText('eyebrow','PAUSA · '+game.stage.name);setText('title','A batalha aguarda.');setText('description','Simulação e áudio estão pausados.');setText('start','CONTINUAR');setText('fine','Você pode escolher outra fase ou retomar esta partida.');$('result').hidden=true;$('retry').hidden=false;hud();}
  function resume(){if(game.state!=='paused')return;game.pause();last=performance.now();$('overlay').hidden=true;unlock();hud();}
  function result(){if(resultShown||!['won','lost'].includes(game.state))return;resultShown=true;const win=game.state==='won',final=win&&game.mode==='campaign'&&game.level===C.stages.length;let stars=0;
+  $('command-choice').hidden=true;$('loadout').hidden=true;$('debrief').hidden=false;
+  commandReward=C.Command.claim(command,matchId,game);saveCommand();commandHUD();
+  setText('debrief-xp','+'+commandReward.xp+' XP');setText('debrief-rank',C.Command.rank(command.xp).name);setText('debrief-skills',game.skillStats.casts+' habilidades · '+game.choices.length+' reforços escolhidos');
   reward=secret.settle(matchId,game);setText('result-gold','+'+reward.coins+' MOEDAS');$('share').hidden=false;
   if(win){stars=game.health>=4?3:game.health>=2?2:1;if(game.mode==='endless'){save.endless.best=Math.max(save.endless.best,game.wave);save.endless.checkpoint=game.wave+1;}else{const prior=save.completed[game.stage.id]||{};save.completed[game.stage.id]={stars:Math.max(prior.stars||0,stars),time:Math.min(prior.time||Infinity,game.time)};}write();}
   $('overlay').hidden=false;$('result').hidden=false;setText('eyebrow',win?(game.mode==='endless'?'ONDA '+game.wave+' CONCLUÍDA':'FASE CONCLUÍDA'):'CERCO ENCERRADO');setText('title',final?'Campanha concluída!':win?'O reino resistiu.':'A defesa caiu.');setText('description',game.reason);setText('result-stars',win?'★'.repeat(stars)+'☆'.repeat(3-stars):'');setText('result-kills',game.metrics.kills.toLocaleString('pt-BR'));setText('result-time',game.time.toFixed(1)+'s');setText('start',final?'VOLTAR À CAMPANHA':win?(game.mode==='endless'?'PRÓXIMA ONDA':'PRÓXIMA FASE'):'TENTAR NOVAMENTE');$('retry').hidden=false;setText('fine',game.metrics.shots+' tiros · '+game.metrics.clones+' clones no campo · '+game.metrics.reinforcements+' reforços · '+(storageAvailable?'progresso salvo neste navegador.':'salvamento indisponível neste navegador.'));
  }
- function openMap(){pause();secret.syncMenu();$('save-warning').hidden=storageAvailable;setText('resume-infinite','RETOMAR ONDA '+save.endless.checkpoint);setText('best-infinite','RECORDE · '+save.endless.best+' ONDAS');setText('seed-label','Expedição '+save.endless.seed.toString(16).toUpperCase()+' · geração '+C.GENERATOR);$('map').hidden=false;$('stage-list').replaceChildren();C.stages.forEach((s,i)=>{const b=document.createElement('button');b.className='stage-card '+s.theme;const best=save.completed[s.id];b.textContent=String(i+1).padStart(2,'0')+'  '+s.name+'\n'+C.formats[s.format]+' · '+C.formations[s.formation]+'\n×'+s.gate+' · '+s.enemies.toLocaleString('pt-BR')+' invasores'+(best?' · '+'★'.repeat(Math.max(1,Math.min(3,best.stars))):'');b.onclick=()=>{$('map').hidden=true;game.mode='campaign';select(i+1);};$('stage-list').append(b);});}
+ function openMap(){if(game.state==='choosing')return;pause();secret.syncMenu();$('save-warning').hidden=storageAvailable;setText('resume-infinite','RETOMAR ONDA '+save.endless.checkpoint);setText('best-infinite','RECORDE · '+save.endless.best+' ONDAS');setText('seed-label','Expedição '+save.endless.seed.toString(16).toUpperCase()+' · geração '+C.GENERATOR);$('map').hidden=false;$('stage-list').replaceChildren();C.stages.forEach((s,i)=>{const b=document.createElement('button');b.className='stage-card '+s.theme;const best=save.completed[s.id];b.textContent=String(i+1).padStart(2,'0')+'  '+s.name+'\n'+C.formats[s.format]+' · '+C.formations[s.formation]+'\n×'+s.gate+' · '+s.enemies.toLocaleString('pt-BR')+' invasores'+(best?' · '+'★'.repeat(Math.max(1,Math.min(3,best.stars))):'');b.onclick=()=>{$('map').hidden=true;game.mode='campaign';select(i+1);};$('stage-list').append(b);});}
  function settings(){ $('music').checked=audio.musicEnabled;$('effects').checked=audio.enabled;$('motion').checked=!renderer.reducedMotion;$('volume').value=Math.round(audio.volume*100);setText('volume-value',Math.round(audio.volume*100)+'%');setText('audio-status',audio.available?'Sons originais gerados pelo jogo.':'Áudio indisponível; a partida continua sem som.');}
  function saveSettings(){save.sound=audio.enabled;save.music=audio.musicEnabled;save.volume=audio.volume;save.motion=!renderer.reducedMotion;write();settings();}
  $('share').onclick=async()=>{
@@ -72,7 +96,7 @@ setText('combo',game.combo>9?'SEQUÊNCIA '+game.combo:'');setText('battle-coins'
  $('start').onclick=()=>{if(game.state==='paused')resume();else if(game.state==='won'&&game.mode==='campaign'&&game.level===C.stages.length)openMap();else{if(game.state==='won')select(game.level+1);else if(game.state==='lost')select(game.level);begin();}};
  $('retry').onclick=()=>{select(game.level);begin();};$('restart').onclick=()=>{select(game.level);begin();};$('pause').onclick=pause;
  $('resume-infinite').onclick=()=>{game.mode='endless';game.runSeed=save.endless.seed;$('map').hidden=true;select(save.endless.checkpoint);};$('new-infinite').onclick=()=>{const n=new Uint32Array(1);if(globalThis.crypto?.getRandomValues)crypto.getRandomValues(n);else n[0]=Date.now()>>>0;save.endless.seed=n[0];save.endless.checkpoint=1;game.mode='endless';game.runSeed=n[0];$('map').hidden=true;select(1);};$('map-button').onclick=openMap;$('choose').onclick=openMap;$('close-map').onclick=()=>$('map').hidden=true;
- $('sound').onclick=()=>{pause();$('settings').hidden=false;settings();};$('close-settings').onclick=()=>$('settings').hidden=true;
+ $('sound').onclick=()=>{if(game.state==='choosing')return;pause();$('settings').hidden=false;settings();};$('close-settings').onclick=()=>$('settings').hidden=true;
  $('music').onchange=e=>{audio.setMusic(e.target.checked);saveSettings();};$('effects').onchange=e=>{audio.setEffects(e.target.checked);saveSettings();};$('motion').onchange=e=>{renderer.reducedMotion=!e.target.checked;saveSettings();};$('volume').oninput=e=>{audio.setVolume(Number(e.target.value)/100);saveSettings();};
  $('quality').onclick=()=>{quality=quality==='auto'?'hd':quality==='hd'?'lite':'auto';renderQuality();slowFrames=0;write();};
  $('burst').onclick=()=>{if(game.activateBurst()){toast('RAJADA · MESMO CUSTO POR TIRO');hud();}};
@@ -81,7 +105,7 @@ setText('combo',game.combo>9?'SEQUÊNCIA '+game.combo:'');setText('battle-coins'
  canvas.addEventListener('pointerdown',e=>{if(game.state!=='playing'||pointer!==null)return;pointer=e.pointerId;canvas.setPointerCapture(pointer);aim(e);e.preventDefault();});
  canvas.addEventListener('pointermove',e=>{if(e.pointerId===pointer&&game.state==='playing'){aim(e);e.preventDefault();}});
  for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(e.pointerId===pointer)pointer=null;});
- addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return;if(secret.active){if(e.code==='Space'&&['raid','paused'].includes(secret.world.state)){secret.world.pause();if(secret.world.state==='paused')audio.suspend();else audio.unlock();secret.hud();e.preventDefault();}return;}if(e.key==='Escape'){$('settings').hidden=true;$('map').hidden=true;return;}if(game.state==='playing'&&['ArrowLeft','ArrowRight'].includes(e.key)){game.aim(game.aimX+(e.key==='ArrowLeft'?-.6:.6));$('aim').value=game.aimX;e.preventDefault();}if(e.code==='Space'){if(game.state==='playing')pause();else if(game.state==='paused')resume();e.preventDefault();}});
+ addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return;if(secret.active){if(e.code==='Space'&&['raid','paused'].includes(secret.world.state)){secret.world.pause();if(secret.world.state==='paused')audio.suspend();else audio.unlock();secret.hud();e.preventDefault();}return;}if(game.state==='choosing')return;if(e.code==='Digit1'){game.cast('meteor');return;}if(e.code==='Digit2'){game.cast('frost');return;}if(e.key==='Escape'){$('settings').hidden=true;$('map').hidden=true;return;}if(game.state==='playing'&&['ArrowLeft','ArrowRight'].includes(e.key)){game.aim(game.aimX+(e.key==='ArrowLeft'?-.6:.6));$('aim').value=game.aimX;e.preventDefault();}if(e.code==='Space'){if(game.state==='playing')pause();else if(game.state==='paused')resume();e.preventDefault();}});
  document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();audio.suspend();}last=performance.now();});
  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();pause();audio.suspend();showGameError('O navegador interrompeu o 3D. Recarregue; o modo LEVE reduz a resolução.');});
  const resize=()=>{renderer.resize();draw();};new ResizeObserver(resize).observe($('stage'));addEventListener('resize',resize);
@@ -89,11 +113,11 @@ setText('combo',game.combo>9?'SEQUÊNCIA '+game.combo:'');setText('battle-coins'
    const simStart=performance.now();game.update(dt);lastSimulationCost=performance.now()-simStart;events();audio.update(game);
    if(now-lastUI>=100){hud();lastUI=now;}
    if(now-lastDraw>=14){const delta=now-lastDraw;frameMean=frameMean*.96+Math.min(250,delta)*.04;if(quality==='auto'&&delta>40){slowFrames++;if(slowFrames>90&&renderer.quality>.65){renderer.quality=.65;renderer.resize();setText('quality','AUTO · LEVE');}}lastDraw=now;draw();}
-   result();
-  }else audio.update(game);requestAnimationFrame(frame);
+   result();showChoice();
+  }else{audio.update(game);if(game.state==='choosing')showChoice();}requestAnimationFrame(frame);
  }
  renderer.rebuild(game);renderQuality();intro();settings();hud();requestAnimationFrame(frame);
- if(new URLSearchParams(location.search).get('test')==='1'||rootTest())window.__gameTest={game,renderer,audio,secret,select,begin,pause,resume,openMap,result,save,write,loadEndless(wave,seed=C.DEFAULT_SEED){game.mode='endless';game.runSeed=seed;select(wave);},snapshot:()=>({...game.snapshot(),audio:audio.snapshot(),render:renderer.lastStats,renderIntervalMean:frameMean,simulationCpuMs:lastSimulationCost,draws}),get pointer(){return pointer;},advance(seconds){for(let i=0;i<Math.round(seconds/C.STEP)&&game.state==='playing';i++)game.step();game.visualAlpha=1;events();hud();audio.update(game);draw();result();},refresh(){events();hud();draw();result();},projected(){return {cannon:renderer.project(game.gunX,0,2.3),gate:renderer.project(game.gates[0].x,1.5,game.gates[0].z)};}};
+ if(new URLSearchParams(location.search).get('test')==='1'||rootTest())window.__gameTest={game,renderer,audio,secret,select,begin,pause,resume,openMap,result,save,write,loadEndless(wave,seed=C.DEFAULT_SEED){game.mode='endless';game.runSeed=seed;select(wave);},command,showChoice,snapshot:()=>({...game.snapshot(),audio:audio.snapshot(),render:renderer.lastStats,renderIntervalMean:frameMean,simulationCpuMs:lastSimulationCost,draws}),get pointer(){return pointer;},advance(seconds){for(let i=0;i<Math.round(seconds/C.STEP)&&game.state==='playing';i++)game.step();game.visualAlpha=1;events();hud();audio.update(game);draw();result();showChoice();},refresh(){events();hud();draw();result();showChoice();},projected(){return {cannon:renderer.project(game.gunX,0,2.3),gate:renderer.project(game.gates[0].x,1.5,game.gates[0].z)};}};
  function rootTest(){return window.__TEST_MODE__===true;}
 }catch(e){showGameError(e.message||String(e));console.error(e);}
 })();

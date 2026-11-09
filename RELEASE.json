@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "name": "Ascensão dos Reinos",
+  "status": "release-approved",
+  "baseCommit": "2f2a1bfe4837ae08c92bb0b2764cc2a979cfa11d",
+  "date": "2026-11-09",
+  "physicalPhoneTests": false,
+  "prepublicationChecks": {
+    "approvedProductionFiles": 32,
+    "syntax": "passed",
+    "logicTests": 118,
+    "legacyTests": 18,
+    "browserRetest": "390x844 Chromium/SwiftShader, emulated touch, production scripts loaded in memory"
+  },
+  "reviewSimulationMatrix": {"runs": 31, "wins": 30, "losses": 1},
+  "reviewBrowserViewports": 5
+}
