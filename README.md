@@ -1,34 +1,51 @@
-# Multidão 0.9.1 — Cânion em Foco
+# Multidão 0.9.2 — Impacto e Variedade
 
-Revisão do enquadramento e da apresentação visual da versão 0.9.0. Campanha, modo infinito, moedas e Refúgio Secreto permanecem disponíveis, com as mesmas chaves de armazenamento local.
+Atualização solicitada para publicação no GitHub Pages, baseada no commit `40122b9bfa2c407c50e993f652620087501c68c0`. Mantém campanha, modo infinito, moedas e Refúgio Secreto.
 
-## O que muda
+## Disparos
 
-Câmera mais próxima e campo visual com menor profundidade aparente; canhões remodelados, chefe maior, iluminação de armaduras, sombras de contato, paredões facetados, piso e torres azuis com números grandes. O piso continua além da borda inferior da tela, eliminando a aparência de plataforma cortada. A interface ocupa menos área; o reinício fica no botão circular junto à pausa.
+Foi reproduzido um problema concreto na versão anterior: 100 efeitos de impacto preenchiam a fila e podiam impedir o clarão do canhão, mesmo com um tiro real disparado. As balas contra torres também completavam o trajeto em cerca de cinco passos de simulação (0,167 s), podendo passar entre quadros lentos.
 
-No tema de cânion, os mesmos invasores são distribuídos de forma contínua entre a curva e o platô. Não há soldados decorativos contabilizados como combatentes nem recompensas fictícias. A mudança de formação pode mudar o tempo do confronto; dano, munição, recompensas e condições de vitória não foram alterados.
+A nova versão reserva prioridade para o clarão, registra trajetória anterior/atual, desenha rastros curtos independentes da fila de impactos e mantém uma breve marca visual após o contato. Esses efeitos não aplicam dano. Cada bala termina explicitamente em impacto, terreno ou ponto de destino vazio. Uma torre já destruída não concede outra recompensa.
 
-O parâmetro `?stage=2&v=0.9.1` abre o Cânion do Guardião diretamente. Omitir `stage` conserva a seleção salva. As outras fases permanecem acessíveis pelo menu.
+A munição continua limitada e cada tiro consome uma carga. Agora há um aviso de últimas cargas e de **SEM CARGAS — TROPAS CONTINUAM LUTANDO**, distinguindo uma pausa legítima dos disparos de uma falha visual. O rastro respeita a profundidade da cena; não atravessa estruturas para simular acertos.
 
-## Módulos
+## Nove fases e mais formatos
 
-- `visual091.js`: geometria, materiais, câmera, sombras e apresentação das unidades.
-- `visual091.css`: interface compacta e sinalização das torres.
-- `formation091.js`: formação contínua dos inimigos somente no tema cânion.
-- `play.js`: âncoras dos rótulos, barra do chefe, botão de reinício e seleção opcional de fase pelo endereço.
+As seis fases existentes permanecem; a Ponte da Aurora passa a usar uma ponte suspensa. Entram:
 
-O núcleo, os modos e a base secreta são os da 0.9.0. Modelos e texturas continuam procedurais e originais; nenhuma imagem ou modelo do anúncio foi incorporado. O acabamento ainda é simplificado, especialmente nas animações e nos personagens distantes.
+| Fase | Nome | Percurso | Formação inicial |
+|---|---|---|---|
+| 7 | Ruínas da Floresta | Clareiras alternadas e passagens entre ruínas | Pelotões alternados |
+| 8 | Bastiões da Cidadela | Três pátios ligados por gargalos | Duas colunas |
+| 9 | Passarelas do Porto | Cotovelos alternados sobre o mar | Centro e flancos |
 
-## Executar e testar
+O conjunto de formações inclui bloco compacto, serpente, cunha, duas colunas, pelotões e flancos. Os caminhos são descritos pela mesma geometria usada no piso e no movimento. Não há bifurcação com controle de duas rotas nem espiral nesta entrega.
+
+O modo infinito também usa os novos formatos, com gerador determinístico de versão 2. As sementes, o recorde e o número da onda salva são preservados, mas os percursos gerados podem diferir dos da 0.9.1. Tentar novamente na 0.9.2 repete a configuração sem ajuste oculto após derrotas.
+
+## Dificuldade explícita
+
+A resistência, a cadência e a proporção de elites aumentam. Couraçados são bronze/dourados, têm três pontos de vida adicionais e se movem mais devagar; batedores avançam mais rápido. Nas fases iniciais o soldado vermelho regular tem 2 HP; nas finais pode chegar a 10 HP. Esses valores têm limites no infinito.
+
+Cada melhoria da bateria também protege **novos** soldados: 3 HP com um canhão, 4 com dois e 5 com três. Não há alteração retroativa em unidades que já estavam no campo. A descrição inicial explica o benefício. As formações mudam o risco de investir cedo: nos bastiões é importante sustentar a frente antes das melhorias.
+
+Quando restam poucos invasores, aliados podem voltar para enfrentar sobreviventes reais, em vez de caminhar até o fim deixando inimigos para trás. O alcance continua limitado pela distância no caminho.
+
+## Execução
 
 ```sh
 python -m http.server 8000
+npm run check
 npm test
-node --test legacy/north-wall/tests/core.test.cjs
-CASE=phone360,phone390,phone393 xvfb-run -a python tests/browser091.py
-CASE=landscape,desktop xvfb-run -a python tests/browser091.py
+npm run test:legacy
+FULL=1 python tests/matrix092.py
+CASE=phone360,phone390,phone393 xvfb-run -a python tests/browser092.py
+CASE=landscape,desktop xvfb-run -a python tests/browser092.py
 ```
 
-Os testes de navegador usam Playwright para Python e Chromium em `/usr/bin/chromium`, com SwiftShader em Xvfb. Consulte `TEST_REPORT.md`. A renderização foi testada com arquivos reais em memória, não em aparelhos físicos. Não há promessa de equivalência ao anúncio ou de 30/60 FPS em todo celular.
+Sem build, banco, CDN ou dependências de produção. Testes de navegador usam Playwright para Python, `/usr/bin/chromium` e Xvfb. Neste ambiente os arquivos de produção foram carregados em memória porque a navegação HTTP foi bloqueada pelo Chromium.
 
-GitHub Pages: `main`, raiz. Todos os caminhos continuam relativos, sem build, backend ou CDN.
+Módulos novos: `routes092.js`, `impact092.js`, `impact092-view.js` e `impact092.css`. A página carrega esses módulos após os anteriores. `?stage=7&v=0.9.2` seleciona diretamente a floresta; `stage=8` abre os bastiões e `stage=9` as passarelas. Sem parâmetro, a seleção salva é respeitada.
+
+Veja `TEST_REPORT.md` para resultados reais. Não há teste físico Android/iPhone/Safari nem nova promessa de FPS. O compartilhamento continua dependente de um toque e não envia conteúdo automaticamente.

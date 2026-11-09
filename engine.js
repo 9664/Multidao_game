@@ -127,11 +127,16 @@ class Game{
    if(!red&&!['dormant','entering','defeated'].includes(boss.state)&&boss.hp>0&&this.road.sameReach(u,boss,2.1)&&(!enemy||Math.abs(u.s-boss.s)<Math.abs(u.s-enemy.s)+.8))target=boss;
    let vs=direction,vl=0,attacking=false;
    if(target){const ds=target.s-u.s,dl=target.l-u.l,d=Math.hypot(ds,dl)||1;vs=ds/d;vl=dl/d;attacking=this.road.sameReach(u,target,target===boss?1.18:.46);
-    if(attacking){active++;front+=u.s;if(u.cooldown<=0){u.cooldown=red?this.cfg.redCadence:this.cfg.blueCadence;damage.set(target,(damage.get(target)||0)+1);u.swing=.23;totalHits++;}}
+    if(attacking){active++;front+=u.s;if(u.cooldown<=0){u.cooldown=red?(u.attackCadence??this.cfg.redCadence):this.cfg.blueCadence;damage.set(target,(damage.get(target)||0)+1);u.swing=.23;totalHits++;}}
    }else{
     const ahead=this.road.sample(clamp(u.s+direction*2,0,this.road.length)),limit=ahead.width-.3;
     if(Math.abs(u.l)>limit)vl=-Math.sign(u.l)*2.5;
-    // After the common gate, maintain a lane rather than converging every soldier to x=0.
+    // Optional cleanup pursuit: surviving allies may return for real stragglers instead of walking off.
+    if(!red&&this.cfg.cleanupPursuit&&this.red.length>0&&this.red.length<this.initialEnemies*.10){
+     if(!u.rally||u.rally.hp<=0||(this.tick+u.id)%15===0){let best=null,dist=Infinity;const jump=Math.max(1,Math.floor(this.red.length/48));for(let k=u.id%jump;k<this.red.length;k+=jump){const e=this.red[k],d=(e.s-u.s)**2+(e.l-u.l)**2;if(e.hp>0&&d<dist){dist=d;best=e;}}u.rally=best;}
+     if(u.rally){const ahead=this.road.sample(clamp(u.s+Math.sign(u.rally.s-u.s)*2,0,this.road.length)),safe=Math.max(.2,ahead.width-.3),ds=u.rally.s-u.s,dl=clamp(u.rally.l,-safe,safe)-u.l,d=Math.hypot(ds,dl)||1;vs=ds/d;vl=dl/d;}
+    }
+    // Other troops preserve their formation rather than converging to x=0.
    }
    const sep=this.separation(u,g),speed=(red?this.cfg.redSpeed:this.cfg.blueSpeed)*u.speed*(u.air>0?1.5:1),factor=attacking?.5:1.8;
    let ds=(attacking?0:vs*speed)*dt+sep.s*factor*dt,dl=(attacking?0:vl*speed)*dt+sep.l*factor*dt;

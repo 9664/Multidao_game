@@ -1,16 +1,17 @@
 {
-  "name": "multidao-cerco-relampago",
-  "version": "0.9.1",
+  "name": "multidao-impacto-variedade",
+  "version": "0.9.2",
   "private": true,
   "scripts": {
-    "check": "node --check engine.js && node --check rush.js && node --check rush-view.js && node --check haven.js && node --check haven-view.js && node --check haven-ui.js && node --check play.js && node --check visual091.js && node --check formation091.js",
-    "test": "node --test tests/core.test.cjs tests/campaign.test.cjs tests/endless.test.cjs tests/rush-haven.test.cjs tests/formation091.test.cjs",
+    "check": "node --check engine.js && node --check rush.js && node --check rush-view.js && node --check haven.js && node --check haven-view.js && node --check haven-ui.js && node --check play.js && node --check visual091.js && node --check formation091.js && node --check routes092.js && node --check impact092.js && node --check impact092-view.js && node --check progress.js",
+    "test": "node --test tests/core.test.cjs tests/campaign.test.cjs tests/endless.test.cjs tests/rush-haven.test.cjs tests/formation091.test.cjs tests/impact092.test.cjs",
     "test:legacy": "node --test legacy/north-wall/tests/core.test.cjs",
     "test:campaign": "python tests/matrix071.py",
-    "test:browser": "xvfb-run -a python tests/browser091.py",
+    "test:browser": "xvfb-run -a python tests/browser092.py",
     "test:endless": "python tests/matrix080.py",
     "bench:logic": "node tests/bench080.cjs",
     "bench:render": "xvfb-run -a python tests/render-bench080.py",
-    "test:rush": "python tests/matrix090.py"
+    "test:rush": "python tests/matrix090.py",
+    "test:impact": "FULL=1 python tests/matrix092.py"
   }
 }

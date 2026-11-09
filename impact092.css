@@ -1,0 +1,10 @@
+/* 0.9.2: explicit ammunition status, route identity and larger mobile targets. */
+#weapon-status{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);max-width:90%;width:max-content;border:1px solid #ffd98788;background:#302116e3;border-radius:9px;color:#ffe6a5;padding:7px 12px;font-size:10px;line-height:1.35;font-weight:850;text-align:center;pointer-events:none;z-index:4}
+#weapon-status[hidden]{display:none}.low-ammo{color:#ffe088!important}
+#app.visiting-base #weapon-status{display:none!important}
+.stage-card.forest{border-left-color:#a2cb69;background:#203d2e}.stage-card.bastion{border-left-color:#d8bc8d;background:#3d3932}
+.stage-card{font-size:11px;line-height:1.75}.campaign-map{max-height:94dvh}.tower-label{touch-action:manipulation}
+#secret-result-entry{min-height:43px}
+@media(max-width:370px){#weapon-status{font-size:9px;bottom:133px}.stage-card{font-size:10px}}
+@media(orientation:landscape) and (max-height:500px){#weapon-status{bottom:59px;font-size:9px;padding:5px 9px}.stage-card{font-size:9px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
