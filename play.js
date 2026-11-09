@@ -1,10 +1,12 @@
-/* v0.9.0: campaign + seeded endless mode. Performance and progress remain local. */
+/* v0.9.1: campaign + seeded endless mode. Performance and progress remain local. */
 (function(){
 'use strict';
 const $=id=>document.getElementById(id),C=MultidaoRush;
 try{
  let storage;try{storage=localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('storage unavailable')}};}
  let save=SiegeProgress.load(storage);
+ const requestedStage=Number(new URLSearchParams(location.search).get("stage"));
+ if(Number.isInteger(requestedStage)&&requestedStage>=1&&requestedStage<=6){save.mode="campaign";save.selected=requestedStage;}
  const game=new C.Game({level:save.selected,mode:save.mode,runSeed:save.endless.seed,wave:save.endless.checkpoint}),renderer=new MultidaoRushRenderer($('game')),audio=new SiegeAudio();
  audio.setEffects(!!save.sound);audio.setMusic(!!save.music);audio.setVolume(Number(save.volume));renderer.reducedMotion=!save.motion;
  let pointer=null,last=performance.now(),lastDraw=0,lastUI=0,frameMean=33,slowFrames=0,draws=0,resultShown=false,toastUntil=0,lastEvent=0,damage=0,damageUntil=0;
@@ -15,6 +17,7 @@ try{
  let quality=['auto','hd','lite'].includes(save.quality)?save.quality:'auto';
  let storageAvailable=SiegeProgress.save(storage,save);
  const write=()=>{storageAvailable=SiegeProgress.save(storage,save);return storageAvailable;};
+ $('restart').textContent='↻';$('pause').after($('restart'));
  const gate=document.createElement('div');gate.className='gate';$('labels').append(gate);
  const towers=game.towers.map(()=>{const el=document.createElement('button');el.className='tower-label';$('labels').append(el);return el;});
  const floating=document.createElement('div');floating.className='damage';floating.hidden=true;$('labels').append(floating);
@@ -22,7 +25,7 @@ try{
  function renderQuality(){renderer.quality=quality==='hd'?1.25:quality==='lite'?.65:1;save.quality=quality;setText('quality',quality==='hd'?'HD':quality==='lite'?'LEVE':'AUTO');renderer.resize();draw();}
  function draw(){if(secret.active){secret.view.render(secret.world,0);return;}renderer.render(game);labels();draws++;}
  function labels(){const g=game.gates[0],p=renderer.project(g.x,1.5,g.z),a=renderer.project(g.x-g.w*.46,1.5,g.z),b=renderer.project(g.x+g.w*.46,1.5,g.z);gate.textContent='×'+g.m;gate.style.left=p.x+'px';gate.style.top=p.y+'px';gate.style.width=Math.max(50,b.x-a.x)+'px';gate.className='gate '+(g.color==='violet'?'violet':'gold')+(g.flash>.04?' flash':'');
-  game.towers.forEach((t,i)=>{const e=towers[i],q=renderer.project(t.x,2.75,t.z);e.hidden=t.state!=='active';if(e.hidden)return;e.style.left=q.x+'px';e.style.top=q.y+'px';e.classList.toggle('targeted',game.target()?.id===t.id);const text=(t.kind==='cannon'?'+1 CANHÃO':'+99 SOLDADOS')+'\n'+Math.max(0,t.hp)+' / '+t.maxHP;if(e.textContent!==text)e.textContent=text;e.setAttribute('aria-label','Mirar '+text);e.onclick=()=>{if(game.state==='playing'){game.aim(t.x);$('aim').value=game.aimX;}};});
+  game.towers.forEach((t,i)=>{const e=towers[i],q=renderer.towerAnchor?renderer.towerAnchor(t):renderer.project(t.x,2.75,t.z);e.hidden=t.state!=='active';if(e.hidden)return;e.style.left=q.x+'px';e.style.top=q.y+'px';e.classList.toggle('targeted',game.target()?.id===t.id);const text=(t.kind==='cannon'?'+1':'+99')+'|'+Math.max(0,t.hp);if(e.dataset.value!==text){e.dataset.value=text;e.replaceChildren();const sign=document.createElement('b'),hp=document.createElement('span');sign.textContent=t.kind==='cannon'?'+1':'+99';hp.textContent=Math.max(0,t.hp);e.append(sign,hp);}e.setAttribute('aria-label','Mirar '+(t.kind==='cannon'?'melhoria de um canhão':'99 soldados')+', resistência '+t.hp+' de '+t.maxHP);e.onclick=()=>{if(game.state==='playing'){game.aim(t.x);$('aim').value=game.aimX;}};});
   if(damageUntil>game.time&&!['dormant','defeated'].includes(game.boss.state)){const p=renderer.project(game.boss.x,3.4,game.boss.z);floating.hidden=false;floating.textContent='−'+damage;floating.style.left=p.x+'px';floating.style.top=(p.y-10*(1-(damageUntil-game.time)/.5))+'px';}else floating.hidden=true;
  }
  function events(){for(const e of game.events){if(e.id<=lastEvent)continue;lastEvent=e.id;
@@ -37,7 +40,7 @@ try{
   const target=game.target();setText('hint',target?'ALVO: '+(target.kind==='cannon'?'+1 CANHÃO':'+99 SOLDADOS'):'ROTA ×'+game.cfg.gate+' · ARRASTE PARA MIRAR');
   $('pause').disabled=game.state!=='playing';$('burst').disabled=game.state!=='playing'||game.burstCooldown>0||!game.ammo;
   setText('burst',game.burstLeft>0?'RAJADA!':game.burstCooldown>0?'RAJADA '+Math.ceil(game.burstCooldown)+'s':'RAJADA');$('burst').classList.toggle('active',game.burstLeft>0);
-  const b=game.boss;$('bossbar').hidden=b.state==='dormant';setText('boss-name',b.state==='defeated'?'COMANDANTE DERROTADO':game.stage.boss.toUpperCase());setText('boss-hp',Math.max(0,b.hp)+' / '+b.maxHP);$('boss-fill').style.width=Math.max(0,b.hp)/b.maxHP*100+'%';$('warning').hidden=!['windup','strike'].includes(b.state);setText('warning',b.state==='windup'?'GOLPE EM '+Math.max(.1,b.timer).toFixed(1)+'s':'IMPACTO');
+  const b=game.boss;$('bossbar').hidden=b.state==='dormant';setText('boss-name',b.state==='defeated'?'COMANDANTE DERROTADO':game.stage.boss.toUpperCase());setText('boss-hp',Math.max(0,b.hp)+' / '+b.maxHP);$('boss-fill').style.width=Math.max(0,b.hp)/b.maxHP*100+'%';if(b.state!=='dormant'){const bp=renderer.project(b.x,5.8,b.z);$('bossbar').style.top=Math.max(53,Math.min(renderer.height*.65,bp.y-20))+'px';$('bossbar').style.left=Math.max(8,Math.min(renderer.width-128,bp.x-60))+'px';}$('warning').hidden=!['windup','strike'].includes(b.state);setText('warning',b.state==='windup'?'GOLPE EM '+Math.max(.1,b.timer).toFixed(1)+'s':'IMPACTO');
   $('progress').style.width=(game.metrics.kills+game.metrics.breaches)/game.initialEnemies*100+'%';if(game.time>toastUntil)$('toast').hidden=true;
  }
  function intro(){resultShown=false;$('share').hidden=true;$('share-copy').hidden=true;setText('share-status','');setText('result-gold','');secret.syncMenu();setText('result-stars','');$('overlay').hidden=false;$('result').hidden=true;setText('eyebrow',(game.mode==='endless'?'ONDA '+game.wave+' · CERCO INFINITO':'FASE '+game.level+' / '+C.stages.length)+' · v'+C.VERSION);setText('title',game.stage.name);setText('description',game.stage.description+' '+game.initialEnemies.toLocaleString('pt-BR')+' invasores e portão ×'+game.cfg.gate+'.');setText('start',game.mode==='endless'?'INICIAR A ONDA':'INICIAR A FASE');setText('fine','A horda avança desde o primeiro disparo. Destrua torres, multiplique tropas e reúna 3 selos para revelar a base secreta.');$('retry').hidden=true;}

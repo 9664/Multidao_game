@@ -1,48 +1,31 @@
-# Validação 0.9.0 — Cerco Relâmpago e Refúgio Secreto
+# Validação 0.9.1 — Cânion em Foco
 
-Revisão executada sobre a base 0.8.0 do commit `a685f4e4a16d80a0a8345ad7d853f70a62325386`. Os cinco arquivos-base inspecionados foram conferidos por SHA de blob. Não há publicação ou alteração em `main` nesta entrega.
+Base: `b02e5416845544ef00e66b495c88ae01d8d5b131`. Os arquivos locais de produção usados como ponto de partida foram conferidos por hashes de blob com a árvore do repositório.
 
-## Lógica
+## Testes executados
 
-**66/66 testes aprovados**: 48 testes anteriores e 18 novos. Comando: `node --test tests/core.test.cjs tests/campaign.test.cjs tests/endless.test.cjs tests/rush-haven.test.cjs`.
+**71/71 testes de lógica passaram:** 66 existentes e cinco novos da formação. Os novos casos verificam quantidade real de invasores, posições transitáveis, reprodução determinística, preservação das outras fases e duas partidas completas do cânion com conservação de tropas e munição. Os dois cenários terminaram em vitória legítima, com 2.200 abates e chefe derrotado. Isso não é uma garantia de vitória para qualquer estratégia.
 
-Cobertura nova: início imediato dos inimigos; três disparos cobrados no primeiro segundo; posição transitável da vanguarda; pausa; recibo de recompensa idempotente; moedas em vitórias e derrotas; bloqueio da base sem selos; custos e ordem das construções; limite de nível; coleta única de cada moeda; flechas com tempo de viagem; vitória da base e prêmio único; proibição de melhorar durante a invasão; saneamento de dados e falha de armazenamento.
+**18/18 testes de regressão** da versão 0.6.0 preservada também passaram.
 
-## Partidas de campanha e infinito
+**Cinco configurações de navegador passaram:** 360×740, 390×780, 393×852, 844×390 e 1366×768. Chromium 144.0.7559.96, SwiftShader, Xvfb. Toque emulado nas quatro primeiras. As execuções finais foram divididas entre três telas verticais e duas telas largas para respeitar o tempo do ambiente.
 
-`tests/matrix090.py`: **14 partidas completas**, seis fases com sementes 20261108 e 42 usando investimento nas torres, mais duas partidas mirando somente o centro. Todas venceram nas estratégias testadas e passaram nas verificações de tropas, munição e posições.
+Em cada configuração, foram exercitados início, mira, cancelamento de toque quando aplicável, pausa, reinício, batalha completa, resultado, moedas, desbloqueio da base, construções, invasão, coleta, orientação e retorno ao cerco. A projeção e a inversão da mira na nova câmera foram comparadas numericamente. Nenhum erro JavaScript ou WebGL foi registrado nas cinco execuções finais.
 
-Com investimento nas torres, os primeiros golpes ocorreram entre **3,433 e 3,933 segundos** de simulação. As conclusões ficaram entre **20,200 e 34,933 segundos**. Não são tempos de CPU nem previsões para jogadores humanos.
+As visitas repetidas à base reutilizaram os recursos existentes. O compartilhamento foi interceptado por um substituto de teste: não foram enviadas mensagens reais. Trechos de combate foram acelerados pelo gancho de testes, sem mudar suas regras.
 
-| Fase | Conclusão nas duas sementes |
-|---|---|
-| 1 | 20,200–20,333 s |
-| 2 | 26,033–26,167 s |
-| 3 | 28,467–28,533 s |
-| 4 | 25,067–25,133 s |
-| 5 | 30,767 s |
-| 6 | 34,767–34,933 s |
+## Comparação visual
 
-Três execuções adicionais do modo infinito, ondas 1, 10 e 1.000, terminaram em vitória em 20,633, 23,933 e 31,000 segundos, respectivamente. A geração de reforços continua contabilizando tropas pendentes separadamente. A vitória pode encerrar o cerco com reforços ainda na fila: eles não são apresentados como soldados já existentes no campo.
+Foram capturadas a 0.9.0 e a 0.9.1 no Cânion do Guardião, aos mesmos 5,5, 16 e 23 segundos de simulação, em 390×780. São imagens do navegador executando o jogo, não imagens conceituais. Como a formação dos inimigos foi revisada, as posições e as baixas podem diferir entre versões.
 
-Essas amostras demonstram funcionamento e ritmo mais rápido; não comprovam balanceamento difícil, taxa de retenção, potencial de viralização ou taxa real de vitória. As duas estratégias avaliadas venceram; recomenda-se avaliação humana antes de aumentar dificuldade.
-
-## Navegador e base secreta
-
-Chromium 144.0.7559.96, SwiftShader e Xvfb. Cinco tamanhos: 360×740, 390×780, 393×852, 844×390 e 1366×768. Toque emulado nos quatro primeiros.
-
-Em cada configuração: partida completa pela mesma simulação, moeda/seletor desbloqueado no resultado, quatro construções, toque no terreno com projeção invertida, invasão da base, pausa, vitória, coleta, rotação e retorno ao cerco. O recibo não foi duplicado ao reapresentar o resultado. Seis visitas adicionais ao Refúgio não criaram novos buffers: o cenário e o contexto WebGL são reutilizados. Nenhum erro JavaScript ou WebGL nas cinco execuções finais.
-
-O compartilhamento foi testado com um substituto instrumentado de `navigator.share`: nenhuma chamada antes do botão e uma chamada após o clique. Nenhuma mensagem foi enviada a um aplicativo real. Os testes não validam a integração com WhatsApp, Instagram ou outro destino.
-
-Trechos foram acelerados pelo gancho de testes, mantendo as mesmas regras de combate. As capturas são renderizações do código testado, não imagens conceituais.
+A matriz de projeção comprime a profundidade visual do mundo; terreno e unidades usam a mesma matriz, e o controle usa sua inversão. As posições de simulação não são comprimidas. Rótulos e barra de vida acompanham projeções reais. Os números de resistência das torres representam os valores da simulação.
 
 ## Limitações
 
-A navegação no endereço local pelo Chromium retornou `ERR_BLOCKED_BY_ADMINISTRATOR`. Os testes executaram os arquivos de produção em memória, sem contornar o bloqueio. Persistência foi verificada como módulo com armazenamento simulado; recarga em uma origem HTTP real não foi validada. O aviso de salvamento indisponível aparece nas capturas desse ambiente.
+Android físico, iPhone e Safari não foram testados. A leitura pública do site pela ferramenta web falhou; execução gráfica e confirmação de publicação no GitHub são verificações diferentes.
 
-Não houve teste em Android físico, iPhone, Safari, benchmark novo de FPS, medição de temperatura ou avaliação sonora em alto-falantes. Esta versão acelera as regras e acrescenta uma base; não é uma certificação de fluidez. O acabamento segue simplificado e original, sem modelos do anúncio.
+Os arquivos foram carregados em memória no navegador de testes. Não foi verificada persistência por recarga numa origem HTTP real nesta rodada. Não foi executado um benchmark sustentado de FPS em hardware móvel. Uma medição diagnóstica de desenho de quadros congelados não é usada como alegação de fluidez.
 
-Moedas e construções persistem quando o armazenamento local está disponível. Moedas não recolhidas e estado transitório da invasão não persistem após fechar a página. Não há proteção contra adulteração deliberada de um save local.
+O visual continua estilizado e simplificado. As animações e a densidade aparente não são equivalentes às do anúncio. Não foram acrescentadas pilhas de recompensas inexistentes ou canhões decorativos apresentados como armas reais.
 
-Logs, matriz, capturas e hashes estão em `evidence-v090` no pacote entregue. Os módulos de produção são compatíveis com GitHub Pages, mas esta entrega permanece em branch de revisão.
+Fontes, logs, capturas e hashes estão no pacote da versão. Os cinco resultados individuais de navegador estão em `evidence-v091/browser-*.json`; o comparativo visual está em `evidence-v091/after-*.png` e `before-*.png`.
